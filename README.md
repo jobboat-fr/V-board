@@ -1,10 +1,22 @@
-# V-Board
+<div align="center">
 
-**Your entire ops team, automated.**
+<img src="docs/assets/banner.svg" alt="V-Board - Your entire ops team, automated." width="900"/>
+
+<br/>
+
+[![License: MIT](https://img.shields.io/badge/license-MIT-brightgreen?style=flat-square&labelColor=0d0b08&color=7eca6c)](LICENSE)
+[![Node](https://img.shields.io/badge/node-%3E%3D18-brightgreen?style=flat-square&labelColor=0d0b08&color=7eca6c)](package.json)
+[![Python](https://img.shields.io/badge/python-%3E%3D3.11-blue?style=flat-square&labelColor=0d0b08&color=4a9eca)](packages/meeting-room/requirements.txt)
+[![Docker](https://img.shields.io/badge/docker-compose-ready?style=flat-square&labelColor=0d0b08&color=e8a020)](docker-compose.yml)
+[![CI](https://img.shields.io/github/actions/workflow/status/jobboat-fr/V-board/ci.yml?branch=main&style=flat-square&labelColor=0d0b08&label=CI)](https://github.com/jobboat-fr/V-board/actions)
+
+</div>
+
+---
 
 V-Board is an open-source AI operations stack for routing business work, coordinating specialist AI departments, producing evidence-backed decisions, and keeping humans in control of the actions that matter.
 
-It is built for teams that want an AI front desk, CFO, CTO, legal reviewer, sales operator, meeting advisor, and back-office analyst without letting an agent blindly spend tokens, send messages, or mutate records.
+Built for teams that want an AI front desk, CFO, CTO, legal reviewer, sales operator, meeting advisor, and back-office analyst - without letting an agent blindly spend tokens, send messages, or mutate records.
 
 ## What It Does
 
