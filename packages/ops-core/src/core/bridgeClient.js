@@ -47,22 +47,22 @@ function requestJson(url, token, payload, timeoutMs) {
 async function routeOrBridge(input, config) {
   const compact = compactEvidence(input, config.limits);
   const route = classify(compact);
-  if (route.route !== "ovh_required") {
+  if (route.route !== "council_required") {
     return {
       ok: true,
       stage: "route",
       route,
       bridge_called: false,
       decision: {
-        action: route.route === "hostinger_local" ? "hostinger_handle_locally" : "hostinger_review_first",
+        action: route.route === "runner_local" ? "runner_handle_locally" : "runner_review_first",
         owner_approval_required: route.policy.owner_approval_required,
         openclaw_allowed_actions: [],
         openclaw_blocked_actions: []
       },
       production_guard: {
-        hostinger_executes: true,
-        ovh_may_send: false,
-        ovh_prepares_only: true
+        runner_executes: true,
+        council_may_send: false,
+        council_prepares_only: true
       }
     };
   }
@@ -90,9 +90,9 @@ async function routeOrBridge(input, config) {
     bridge_status: bridge.status || null,
     bridge,
     production_guard: {
-      hostinger_executes: true,
-      ovh_may_send: false,
-      ovh_prepares_only: true,
+      runner_executes: true,
+      council_may_send: false,
+      council_prepares_only: true,
       execute_only_allowed_actions: true
     }
   };

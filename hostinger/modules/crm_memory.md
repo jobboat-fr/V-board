@@ -1,7 +1,7 @@
 # CRM Memory Protocol
 
 Maintain:
-/data/.openclaw/workspace/crm/leads.md
+$AZZCO_WORKSPACE/crm/leads.md
 
 Track:
 - name

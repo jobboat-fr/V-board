@@ -5,12 +5,12 @@ const fs = require("fs");
 const path = require("path");
 const { spawnSync } = require("child_process");
 
-const ROOT = "/data/.openclaw/workspace";
+const ROOT = process.env.AZZCO_WORKSPACE || "/workspace";
 const category = process.argv[2] || "owner_decision_meeting";
 const urgency = process.argv[3] || "P2";
 const outDir = path.join(ROOT, "ops/context");
-const jsonPath = path.join(outDir, `ovh_last_${category}.json`);
-const textPath = path.join(outDir, `ovh_last_${category}.txt`);
+const jsonPath = path.join(outDir, `council_last_${category}.json`);
+const textPath = path.join(outDir, `council_last_${category}.txt`);
 
 const titles = {
   morning_brief: "AZZCO Morning Brief",
@@ -107,7 +107,7 @@ function deterministicEvidence() {
   ].filter(Boolean);
 
   if (FINANCE_CATEGORIES.has(category)) {
-    const financeReport = readJsonFile(path.join(ROOT, "finance/reports/finance_report.json"), null);
+    const financeReport = readJsonFile(path.join(ROOT, "finance/reports/finance_report.json"), null); // ROOT from env
     if (financeReport && financeReport.ok && financeReport.facts) {
       const topExpenses = (financeReport.expenseBreakdown && financeReport.expenseBreakdown.ranked || []).slice(0, 3)
         .map((e) => `${e.description}: ${e.amount.toFixed(2)} EUR (${e.pct.toFixed(1)}%)`);
@@ -186,8 +186,8 @@ function renderBlocked(reason, detail) {
     detail ? `Detail: ${String(detail).slice(0, 900)}` : null,
     "",
     "Execution split:",
-    "- Hostinger collected/delivered only.",
-    "- OVH analysis was required.",
+    "- runner collected/delivered only.",
+    "- council analysis was required.",
     "- No local hard analysis was invented.",
     "",
     "Next action: check bridge/council logs before retrying."
@@ -234,19 +234,19 @@ function categoryPreflightBlock() {
   if (category === "mail_triage" && !mailSnapshotOk) {
     return {
       reason: "mail_source_snapshot_missing",
-      detail: "No successful inbox snapshot exists under /data/.openclaw/workspace/mail/triage/latest_inbox_snapshot.json. Refusing to invent mail labels or replies."
+      detail: `No successful inbox snapshot exists under ${ROOT}/mail/triage/latest_inbox_snapshot.json. Refusing to invent mail labels or replies.`
     };
   }
   if (category === "lead_scout" && fileBytes(leadScoutFresh) < 20) {
     return {
       reason: "lead_source_collection_missing",
-      detail: "No fresh lead source collection exists at /data/.openclaw/workspace/ops/context/lead_scout_fresh_candidates.json. Refusing to invent prospects."
+      detail: `No fresh lead source collection exists at ${ROOT}/ops/context/lead_scout_fresh_candidates.json. Refusing to invent prospects.`
     };
   }
   if (["crm_pipeline", "deal_desk", "approval_queue"].includes(category) && fileBytes(crmLeads) < 120) {
     return {
       reason: "crm_leads_missing",
-      detail: "CRM lead file is empty or placeholder-only at /data/.openclaw/workspace/crm/leads.md. Refusing to invent pipeline state."
+      detail: `CRM lead file is empty or placeholder-only at ${ROOT}/crm/leads.md. Refusing to invent pipeline state.`
     };
   }
   if (financeCategories.has(category) && (!bankValidation || bankValidation.ok !== true)) {
@@ -292,22 +292,22 @@ function render(result) {
   const missingWithEvidence = unique([deterministic.missing, missing], 12);
 
   if (!result?.ok || !stage.ok || !ovh.ok) {
-    return renderBlocked(ovh.error || stage.error || result?.error || "OVH bridge returned non-ok", JSON.stringify({ stage, ovh }).slice(0, 900));
+    return renderBlocked(ovh.error || stage.error || result?.error || "council bridge returned non-ok", JSON.stringify({ stage, ovh }).slice(0, 900));
   }
 
   return [
     `${titles[category] || titles.owner_decision_meeting}`,
     `Generated: ${result.generatedAt || new Date().toISOString()}`,
-    `Route: Hostinger -> OVH -> Hostinger`,
+    `Route: runner -> council -> runner`,
     `Urgency: ${decision.urgency || urgency}`,
     `Decision: ${decision.action || "owner_review"}`,
     `Confidence: ${normalizeConfidence(decision.confidence)}`,
     "",
     "Execution split:",
-    "- OVH prepared the analysis only.",
-    "- Hostinger is the communicator/courier.",
-    "- OVH may not send WhatsApp, email, or CRM writes.",
-    "- Hostinger may execute only allowed/approved actions.",
+    "- council prepared the analysis only.",
+    "- runner is the communicator/courier.",
+    "- council may not send WhatsApp, email, or CRM writes.",
+    "- runner may execute only allowed/approved actions.",
     "",
     "Model/cost:",
     `- Models: ${models.length ? models.join("; ") : "not reported"}`,

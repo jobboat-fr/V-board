@@ -14,7 +14,7 @@ For production app-to-server access, prefer scoped API keys instead of the singl
 node src/cli.js keys issue \
   --name crm-app \
   --scopes route:read,department:dispatch,work_orders:read,work_orders:write \
-  --file /data/.openclaw/workspace/azzco-ops-core/.secrets/api_keys.json
+  --file /workspace/.secrets/api_keys.json
 ```
 
 The command prints the plaintext token once and stores only its SHA-256 hash in the key registry.
@@ -22,7 +22,7 @@ The command prints the plaintext token once and stores only its SHA-256 hash in 
 Set:
 
 ```bash
-AZZCO_API_KEYS_FILE=/data/.openclaw/workspace/azzco-ops-core/.secrets/api_keys.json
+AZZCO_API_KEYS_FILE=/workspace/.secrets/api_keys.json
 ```
 
 Useful scopes:
@@ -53,15 +53,15 @@ Public routes:
 
 Returns deterministic routing:
 
-- `hostinger_local`
-- `hostinger_review_first`
-- `ovh_required`
+- `runner_local`
+- `runner_review_first`
+- `council_required`
 
 ## Bridge
 
 `POST /v1/bridge`
 
-Runs the route policy first. If the task does not require OVH, no council call is made. If it does require OVH, the API calls `AZZCO_COUNCIL_URL`.
+Runs the route policy first. If the task does not require council, no council call is made. If it does require council, the API calls `AZZCO_COUNCIL_URL`.
 
 ## Departments
 
@@ -78,7 +78,7 @@ curl -sS http://127.0.0.1:8788/v1/departments/dispatch \
   -d '{"department":"crm","payload":{"prompt":"Add CRM note","urgency":"P3"}}'
 ```
 
-The gateway returns the routing decision and either handles locally or bridges to OVH if the policy requires heavy work.
+The gateway returns the routing decision and either handles locally or bridges to council if the policy requires heavy work.
 
 ## Observability
 

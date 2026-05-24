@@ -1,8 +1,9 @@
 #!/bin/sh
 set -eu
 
-CONFIG="/data/.openclaw/workspace/.secrets/azzco_council.env"
-URL="${AZZCO_COUNCIL_URL:-http://127.0.0.1:8787/route}"
+WORKSPACE="${AZZCO_WORKSPACE:-/workspace}"
+CONFIG="${AZZCO_COUNCIL_CONFIG:-$WORKSPACE/.secrets/azzco_council.env}"
+URL="${AZZCO_COUNCIL_URL:-http://council:8787/route}"
 TOKEN="${AZZCO_COUNCIL_TOKEN:-}"
 
 if [ -f "$CONFIG" ]; then

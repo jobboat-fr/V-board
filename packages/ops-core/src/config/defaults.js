@@ -23,7 +23,7 @@ function getConfig(overrides = {}) {
       keysJson: overrides.keysJson || env("AZZCO_API_KEYS_JSON", "")
     },
     council: {
-      url: overrides.councilUrl || env("AZZCO_COUNCIL_URL", "http://127.0.0.1:8787/route"),
+      url: overrides.councilUrl || env("AZZCO_COUNCIL_URL", "http://council:8787/route"),
       token: overrides.councilToken || env("AZZCO_COUNCIL_TOKEN", ""),
       timeoutMs: Number(overrides.councilTimeoutMs || intEnv("AZZCO_COUNCIL_TIMEOUT_MS", 120000))
     },

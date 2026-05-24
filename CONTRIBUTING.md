@@ -9,7 +9,7 @@
    ```
 
 2. The CI will fail if any of these are violated:
-   - `ovh_may_send` is ever `true` in source code
+   - `council_may_send` is ever `true` in source code
    - A hardcoded phone number (`+336`, `+337`) appears in any `.js`, `.sh`, `.py`, or `.md`
    - A private server IP (`187.127.`, `57.130.58.`, etc.) appears in any code file
    - A committed secret is detected in `.env` files
@@ -23,14 +23,14 @@
 - Server env files live in `/etc/azzco-council.env` and `/etc/azzco-ops-core.env`
 - API keys go in `.secrets/api_keys.json` (never committed, `chmod 600`)
 
-## The `ovh_may_send: false` Invariant
+## The `council_may_send: false` Invariant
 
-This is non-negotiable. OVH never sends email, WhatsApp, Telegram, or writes CRM. It prepares and returns a recommendation only. This is enforced in:
-- `packages/ops-core/src/core/routePolicy.js` — `policy.ovh_may_send` always false
-- `packages/ops-core/tests/run.js` — invariant test
+This is non-negotiable. council never sends email, WhatsApp, Telegram, or writes CRM. It prepares and returns a recommendation only. This is enforced in:
+- `packages/ops-core/src/core/routePolicy.js` — `policy.council_may_send` always false
+- `packages/ops-core/tests/run.js` — `testCouncilMaySendInvariant()` test
 - `.github/workflows/ci.yml` — `security-scan` job blocks merge if violated
 
-Do not modify this invariant. If you have a use case that seems to require OVH to send, open an issue first.
+Do not modify this invariant. If you have a use case that seems to require council to send, open an issue first.
 
 ## Code Style
 

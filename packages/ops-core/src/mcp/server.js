@@ -15,7 +15,7 @@ function textContent(value) {
 const TOOL_DEFS = [
   {
     name: "azzco_route",
-    description: "Classify a task and return a deterministic routing decision: hostinger_local, hostinger_review_first, or ovh_required. Does not call OVH — pure policy logic.",
+    description: "Classify a task and return a deterministic routing decision: runner_local, runner_review_first, or council_required. Does not call council — pure policy logic.",
     inputSchema: {
       type: "object",
       properties: {
@@ -33,7 +33,7 @@ const TOOL_DEFS = [
   },
   {
     name: "azzco_bridge",
-    description: "Route a task and, only when route=ovh_required, call the configured OVH council endpoint with compact evidence. Returns the routing decision plus the council response when called.",
+    description: "Route a task and, only when route=council_required, call the configured council endpoint with compact evidence. Returns the routing decision plus the council response when called.",
     inputSchema: {
       type: "object",
       properties: {
@@ -258,9 +258,9 @@ async function callTool(name, args, config, store) {
           restrictedTerms: RESTRICTED_TERMS,
           commitmentTerms: COMMITMENT_TERMS,
           invariants: {
-            ovh_may_send: false,
-            ovh_prepares_only: true,
-            hostinger_executes: true
+            council_may_send: false,
+            council_prepares_only: true,
+            runner_executes: true
           }
         })
       };

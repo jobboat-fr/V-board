@@ -1,9 +1,9 @@
 # AZZCO Ops Core
 
-Production control plane for AZZ&CO LABS' two-server operations model.
+Production control plane for AZZ&CO LABS' container-native operations model.
 
-**Hostinger** handles communication, sending, CRM writes, low-temperature work, and data transfer.
-**OVH** handles high-temperature analysis, legal/accounting review, CTO incidents, and quality hardening.
+**Runner** handles communication, sending, CRM writes, low-temperature work, and data transfer.
+**Council** handles high-temperature analysis, legal/accounting review, CTO incidents, and quality hardening.
 
 This repo provides: deterministic routing gate, HTTP API, MCP tools, work-order store, DevOps checks, and the AZZCO CFO stack.
 
@@ -11,8 +11,8 @@ The CFO stack turns normalized Qonto/bank context into accountant-ready reports 
 
 ## Key Rule
 
-OVH prepares only. It **never** sends email, WhatsApp, Telegram, or writes CRM.
-This is enforced by code — `policy.ovh_may_send` is always `false`.
+Council prepares only. It **never** sends email, WhatsApp, Telegram, or writes CRM.
+This is enforced by code — `policy.council_may_send` is always `false`.
 
 ## Quick Start
 
@@ -157,8 +157,8 @@ Add to your Claude Code / MCP client config:
 
 | Tool | Description |
 |---|---|
-| `azzco_route` | Deterministic routing decision (no OVH call) |
-| `azzco_bridge` | Route + call OVH council when required |
+| `azzco_route` | Deterministic routing decision (no council call) |
+| `azzco_bridge` | Route + call council when required |
 | `azzco_file_read` | Read file within `AZZCO_DATA_ROOT` |
 | `azzco_file_write` | Write file within `AZZCO_DATA_ROOT` |
 | `azzco_file_list` | List files within `AZZCO_DATA_ROOT` |
@@ -167,7 +167,7 @@ Add to your Claude Code / MCP client config:
 | `azzco_health` | Service health + config status — use to verify connectivity from other projects |
 | `azzco_finance_build` | Build the CFO report and ledger from validated bank context |
 | `azzco_finance_status` | Read the latest CFO report status |
-| `azzco_policy` | Returns routing constants and the `ovh_may_send: false` invariant |
+| `azzco_policy` | Returns routing constants and the `council_may_send: false` invariant |
 
 ## DevOps Cycle
 
@@ -180,7 +180,7 @@ docker build -t azzco/ops-core:local .
 Release gates — do **not** deploy if:
 - any test or doctor case fails
 - `apiAuthConfigured: false` in production
-- `ovh_may_send` is ever true (tests enforce this)
+- `council_may_send` is ever true (tests enforce this)
 - path traversal guard is not returning 403
 
 ## CFO Stack

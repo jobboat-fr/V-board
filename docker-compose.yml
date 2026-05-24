@@ -1,0 +1,137 @@
+version: "3.9"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# AZZCO V-Board — single-server, multi-container deployment
+#
+# Services:
+#   ops-core  — routing gate, MCP server, HTTP API (port 8788)
+#   council   — AI analysis / hard-work engine (port 8787, internal only)
+#   runner    — cron agent executor (no exposed port)
+#   ollama    — optional local LLM backend (port 11434, internal only)
+#
+# All services share the `azzco-net` bridge network and communicate
+# by service name (e.g. http://council:8787/route).
+#
+# Quick start:
+#   cp .env.example .env   # fill in tokens
+#   docker compose up -d
+# ─────────────────────────────────────────────────────────────────────────────
+
+networks:
+  azzco-net:
+    driver: bridge
+
+volumes:
+  workspace:       # shared workspace: docs, context, reports
+  ops-core-data:   # ops-core data root (work orders, finance, logs)
+  ollama-data:     # ollama model cache
+
+services:
+
+  # ── ops-core ──────────────────────────────────────────────────────────────
+  ops-core:
+    build:
+      context: packages/ops-core
+      dockerfile: Dockerfile
+    container_name: azzco-ops-core
+    restart: unless-stopped
+    networks: [azzco-net]
+    ports:
+      - "${OPS_CORE_HOST:-127.0.0.1}:${OPS_CORE_PORT:-8788}:8788"
+    volumes:
+      - ops-core-data:/data
+      - workspace:/workspace:ro
+    environment:
+      NODE_ENV: production
+      AZZCO_API_HOST: "0.0.0.0"
+      AZZCO_API_PORT: "8788"
+      AZZCO_API_TOKEN: "${AZZCO_API_TOKEN}"
+      AZZCO_API_KEYS_JSON: "${AZZCO_API_KEYS_JSON:-}"
+      AZZCO_DATA_ROOT: /data
+      AZZCO_COUNCIL_URL: "http://council:8787/route"
+      AZZCO_COUNCIL_TOKEN: "${AZZCO_COUNCIL_TOKEN}"
+      AZZCO_COUNCIL_TIMEOUT_MS: "${AZZCO_COUNCIL_TIMEOUT_MS:-120000}"
+      AZZCO_OWNER_WHATSAPP: "${AZZCO_OWNER_WHATSAPP:-}"
+      AZZCO_SERVER_NAME: "ops-core"
+      AZZCO_LOG_LEVEL: "${AZZCO_LOG_LEVEL:-info}"
+      SUPABASE_URL: "${SUPABASE_URL:-}"
+      SUPABASE_SERVICE_ROLE_KEY: "${SUPABASE_SERVICE_ROLE_KEY:-}"
+      AZZCO_SUPABASE_ENABLED: "${AZZCO_SUPABASE_ENABLED:-false}"
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:8788/health',r=>{process.exit(r.statusCode===200?0:1)}).on('error',()=>process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    depends_on:
+      council:
+        condition: service_healthy
+
+  # ── council ───────────────────────────────────────────────────────────────
+  council:
+    build:
+      context: packages/council
+      dockerfile: Dockerfile
+    container_name: azzco-council
+    restart: unless-stopped
+    networks: [azzco-net]
+    # council is NOT exposed to the host — ops-core/runner reach it by name
+    expose: ["8787"]
+    volumes:
+      - workspace:/workspace:ro
+    environment:
+      NODE_ENV: production
+      AZZCO_COUNCIL_HOST: "0.0.0.0"
+      AZZCO_COUNCIL_PORT: "8787"
+      AZZCO_COUNCIL_TOKEN: "${AZZCO_COUNCIL_TOKEN}"
+      HUGGINGFACE_TOKEN: "${HUGGINGFACE_TOKEN:-}"
+      TOGETHER_API_KEY: "${TOGETHER_API_KEY:-}"
+      AZZCO_DAILY_BUDGET_USD: "${AZZCO_DAILY_BUDGET_USD:-3.00}"
+      AZZCO_FORCE_CHEAP_MODE: "${AZZCO_FORCE_CHEAP_MODE:-0}"
+      OLLAMA_BASE_URL: "http://ollama:11434"
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:8787/health',r=>{process.exit(r.statusCode===200?0:1)}).on('error',()=>process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  # ── runner ────────────────────────────────────────────────────────────────
+  runner:
+    build:
+      context: packages/runner
+      dockerfile: Dockerfile
+    container_name: azzco-runner
+    restart: unless-stopped
+    networks: [azzco-net]
+    volumes:
+      - workspace:/workspace
+    environment:
+      AZZCO_WORKSPACE: /workspace
+      AZZCO_COUNCIL_URL: "http://council:8787/route"
+      AZZCO_COUNCIL_TOKEN: "${AZZCO_COUNCIL_TOKEN}"
+      AZZCO_OWNER_WHATSAPP: "${AZZCO_OWNER_WHATSAPP}"
+      AZZCO_ASSISTANT_WHATSAPP: "${AZZCO_ASSISTANT_WHATSAPP:-}"
+      WHATSAPP_API_URL: "${WHATSAPP_API_URL:-}"
+      WHATSAPP_API_TOKEN: "${WHATSAPP_API_TOKEN:-}"
+      GMAIL_CREDENTIALS_JSON: "${GMAIL_CREDENTIALS_JSON:-}"
+      GMAIL_TOKEN_JSON: "${GMAIL_TOKEN_JSON:-}"
+      QONTO_AUTH: "${QONTO_AUTH:-}"
+      MAIL_TRIAGE_LIMIT: "${MAIL_TRIAGE_LIMIT:-20}"
+      AZZCO_DAILY_BUDGET_USD: "${AZZCO_DAILY_BUDGET_USD:-3.00}"
+    depends_on:
+      ops-core:
+        condition: service_healthy
+      council:
+        condition: service_healthy
+
+  # ── ollama (optional local LLM) ───────────────────────────────────────────
+  ollama:
+    image: ollama/ollama:latest
+    container_name: azzco-ollama
+    restart: unless-stopped
+    networks: [azzco-net]
+    expose: ["11434"]
+    volumes:
+      - ollama-data:/root/.ollama
+    profiles: ["ollama"]   # opt-in: docker compose --profile ollama up -d

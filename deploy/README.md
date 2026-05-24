@@ -1,94 +1,129 @@
 # Deploy Guide
 
-## First-Time Server Setup
+## Option A — Single Server, Docker Compose (recommended)
 
-### OVH
+### First-Time Setup
 
 ```bash
-# SSH into OVH, copy and run the install script
-scp -i ~/.ssh/id_ed25519_ovh_azzco deploy/install-ovh.sh ubuntu@YOUR_OVH_IP:~/
-ssh -i ~/.ssh/id_ed25519_ovh_azzco ubuntu@YOUR_OVH_IP
+# 1. Clone the repo on your server
+git clone https://github.com/azzco-labs/v-board.git /opt/v-board
+cd /opt/v-board
+
+# 2. Configure
+cp .env.example .env
+nano .env   # fill in AZZCO_COUNCIL_TOKEN, AZZCO_API_TOKEN, AZZCO_OWNER_WHATSAPP
+
+# 3. Run the setup script
+bash deploy/install-hostinger.sh
+
+# 4. Mount your crontab (runner container)
+cp packages/runner/crontab.example /etc/azzco-crontab
+# Then add to your docker-compose.yml override:
+# services:
+#   runner:
+#     volumes:
+#       - /etc/azzco-crontab:/etc/azzco-crontab:ro
+```
+
+### CI/CD — GitHub Actions Secrets
+
+Add these secrets at: **Settings → Secrets and variables → Actions → New repository secret**
+
+| Secret | Value |
+|---|---|
+| `DEPLOY_HOST` | Your server IP |
+| `DEPLOY_SSH_KEY` | Contents of your CI SSH private key |
+| `DEPLOY_USER` | SSH user (`root` or `ubuntu`) |
+
+### Generating a Deploy-Only SSH Key (recommended)
+
+```bash
+# Generate CI deploy key pair (no passphrase)
+ssh-keygen -t ed25519 -C "github-actions-deploy" -f ~/.ssh/id_ed25519_ci_deploy -N ""
+
+# Add public key to server's authorized_keys
+ssh root@YOUR_SERVER_IP \
+  "echo '$(cat ~/.ssh/id_ed25519_ci_deploy.pub)' >> ~/.ssh/authorized_keys"
+
+# Put the PRIVATE key into GitHub secret as DEPLOY_SSH_KEY
+```
+
+---
+
+## Option B — Two Servers, Bare Node
+
+For deployments across two separate VPS instances (e.g. original Hostinger + OVH design).
+
+### Server 1 — ops-core + runner
+
+```bash
+scp deploy/install-hostinger.sh root@SERVER1_IP:~/
+ssh root@SERVER1_IP
+# Edit to set VBOARD_REPO or install manually
+bash install-hostinger.sh
+```
+
+### Server 2 — council
+
+```bash
+scp deploy/install-ovh.sh ubuntu@SERVER2_IP:~/
+ssh ubuntu@SERVER2_IP
 sudo bash install-ovh.sh
 
-# Then fill in the env files and start services:
-sudo nano /etc/azzco-council.env       # Set AZZCO_COUNCIL_TOKEN + HUGGINGFACE_TOKEN
-sudo nano /etc/azzco-ops-core.env      # Set AZZCO_API_TOKEN
+# Fill in env files
+sudo nano /etc/azzco-council.env       # AZZCO_COUNCIL_TOKEN + HUGGINGFACE_TOKEN
+sudo nano /etc/azzco-ops-core.env      # AZZCO_API_TOKEN
 
-# Stop the current bare-node processes:
-pkill -f 'node /opt/azzco-council' || true
-pkill -f 'node src/cli.js api' || true
-
-# Start via systemd:
+# Start services
 sudo systemctl start azzco-council
 sudo systemctl start azzco-ops-core
 sudo systemctl status azzco-council
 sudo systemctl status azzco-ops-core
 ```
 
-### Hostinger
-
-```bash
-scp -i ~/.ssh/id_ed25519 deploy/install-hostinger.sh root@YOUR_HOSTINGER_IP:~/
-ssh -i ~/.ssh/id_ed25519 root@YOUR_HOSTINGER_IP
-bash install-hostinger.sh
-```
-
----
-
-## CI/CD — GitHub Actions Secrets
-
-Add these secrets to your GitHub repo at:
-**Settings → Secrets and variables → Actions → New repository secret**
+For two-server CI/CD, add additional secrets:
 
 | Secret | Value |
 |---|---|
-| `HOSTINGER_HOST` | Your Hostinger server IP |
-| `HOSTINGER_SSH_KEY` | Contents of `~/.ssh/id_ed25519` (Hostinger private key) |
-| `OVH_HOST` | Your OVH server IP |
-| `OVH_SSH_KEY` | Contents of `~/.ssh/id_ed25519_ovh_azzco` (OVH private key) |
-
-### Generating Deploy-Only SSH Keys (Recommended)
-
-Use dedicated CI keys — never put your personal keys in GitHub secrets:
-
-```bash
-# Generate CI deploy key pair (no passphrase)
-ssh-keygen -t ed25519 -C "github-actions-deploy" -f ~/.ssh/id_ed25519_ci_deploy -N ""
-
-# Add public key to Hostinger's authorized_keys:
-ssh -i ~/.ssh/id_ed25519 root@YOUR_HOSTINGER_IP \
-  "echo '$(cat ~/.ssh/id_ed25519_ci_deploy.pub)' >> ~/.ssh/authorized_keys"
-
-# Add public key to OVH's authorized_keys:
-ssh -i ~/.ssh/id_ed25519_ovh_azzco ubuntu@YOUR_OVH_IP \
-  "echo '$(cat ~/.ssh/id_ed25519_ci_deploy.pub)' >> ~/.ssh/authorized_keys"
-
-# Put the PRIVATE key (id_ed25519_ci_deploy) into GitHub secrets as HOSTINGER_SSH_KEY / OVH_SSH_KEY
-```
+| `HOSTINGER_HOST` | Server 1 IP |
+| `HOSTINGER_SSH_KEY` | SSH private key for server 1 |
+| `OVH_HOST` | Server 2 IP |
+| `OVH_SSH_KEY` | SSH private key for server 2 |
 
 ---
 
-## Manual Deploy (Without CI)
+## Manual Deploy (Docker Compose, no CI)
 
 ```bash
-# Deploy ops-core to Hostinger manually
+# On the server
+cd /opt/v-board
+git pull origin main
+
+# Rebuild and restart
+docker compose build --no-cache ops-core council
+docker compose up -d
+
+# Verify
+curl http://127.0.0.1:8788/health
+docker compose ps
+```
+
+## Manual Deploy (Two-Server Bare Node, no CI)
+
+```bash
+# Deploy ops-core to server 1
 rsync -az --exclude=node_modules --exclude=.secrets \
   -e "ssh -i ~/.ssh/id_ed25519" \
   packages/ops-core/ \
-  root@YOUR_HOSTINGER_IP:/tmp/ops-core-deploy/
+  root@SERVER1_IP:/opt/azzco-ops-core/
 
-ssh -i ~/.ssh/id_ed25519 root@YOUR_HOSTINGER_IP "
-  docker cp /tmp/ops-core-deploy/. openclaw-uix8-openclaw-1:/data/.openclaw/workspace/azzco-ops-core/
-  docker exec openclaw-uix8-openclaw-1 sh -c 'cd /data/.openclaw/workspace/azzco-ops-core && npm ci && npm test'
-"
-
-# Deploy council to OVH manually
+# Deploy council to server 2
 rsync -az --exclude=node_modules \
-  -e "ssh -i ~/.ssh/id_ed25519_ovh_azzco" \
+  -e "ssh -i ~/.ssh/id_ed25519_ovh" \
   packages/council/ \
-  ubuntu@YOUR_OVH_IP:/opt/azzco-council/core/
+  ubuntu@SERVER2_IP:/opt/azzco-council/core/
 
-ssh -i ~/.ssh/id_ed25519_ovh_azzco ubuntu@YOUR_OVH_IP "
+ssh ubuntu@SERVER2_IP "
   cd /opt/azzco-council/core
   node scripts/smoke_test.js && node scripts/hardening_test.js
   sudo systemctl restart azzco-council

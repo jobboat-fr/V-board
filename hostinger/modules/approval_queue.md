@@ -1,7 +1,7 @@
 # Approval Queue Protocol
 
 Maintain:
-/data/.openclaw/workspace/ops/approval_queue.md
+$AZZCO_WORKSPACE/ops/approval_queue.md
 
 Use for:
 - cold emails

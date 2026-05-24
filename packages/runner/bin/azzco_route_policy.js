@@ -2,7 +2,7 @@
 
 const fs = require("fs");
 
-const OVH_REQUIRED_CATEGORIES = new Set([
+const COUNCIL_REQUIRED_CATEGORIES = new Set([
   "morning_brief",
   "mail_triage",
   "lead_scout",
@@ -24,7 +24,7 @@ const OVH_REQUIRED_CATEGORIES = new Set([
   "vendor_ops"
 ]);
 
-const HOSTINGER_LOCAL_CATEGORIES = new Set([
+const RUNNER_LOCAL_CATEGORIES = new Set([
   "simple_chat",
   "daily_communications",
   "mail_labeling",
@@ -81,21 +81,21 @@ function classify(input = {}) {
   const hasVerifiedContact = Boolean(input.lead?.email || input.email?.from || /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/.test(text));
   const publicEvidence = Boolean(input.lead?.website || contains(text, ["public website", "public source", "website:", "https://", "www."]));
 
-  const ovhReasons = [];
-  if (input.force_ovh === true || input.delegate_to_ovh === true) ovhReasons.push("explicit_ovh_delegation");
-  if (!owner && restricted) ovhReasons.push("non_owner_restricted");
-  if (restricted) ovhReasons.push("restricted_legal_accounting_or_internal");
-  if (urgency === "P0" || urgency === "P1") ovhReasons.push(`urgency_${urgency}`);
-  if (temperature >= 70 || mailLabel === "hot_mail") ovhReasons.push("hot_temperature");
-  if (mailLabel === "warm_mail" && temperature >= 45) ovhReasons.push("warm_requires_quality_review");
-  if (OVH_REQUIRED_CATEGORIES.has(category)) {
-    ovhReasons.push(`category_${category}`);
+  const councilReasons = [];
+  if (input.force_council === true || input.force_ovh === true || input.delegate_to_council === true) councilReasons.push("explicit_council_delegation");
+  if (!owner && restricted) councilReasons.push("non_owner_restricted");
+  if (restricted) councilReasons.push("restricted_legal_accounting_or_internal");
+  if (urgency === "P0" || urgency === "P1") councilReasons.push(`urgency_${urgency}`);
+  if (temperature >= 70 || mailLabel === "hot_mail") councilReasons.push("hot_temperature");
+  if (mailLabel === "warm_mail" && temperature >= 45) councilReasons.push("warm_requires_quality_review");
+  if (COUNCIL_REQUIRED_CATEGORIES.has(category)) {
+    councilReasons.push(`category_${category}`);
   }
   if (hasCommitmentRisk(text)) {
-    ovhReasons.push("commitment_or_reputation_risk");
+    councilReasons.push("commitment_or_reputation_risk");
   }
-  if (contains(text, ["ambiguous", "unclear", "missing evidence", "not sure", "unknown_mail"])) ovhReasons.push("ambiguous_or_missing_evidence");
-  if (contains(text, ["morning brief", "daily executive brief", "board brief", "strategic daily plan"])) ovhReasons.push("morning brief requires OVH synthesis");
+  if (contains(text, ["ambiguous", "unclear", "missing evidence", "not sure", "unknown_mail"])) councilReasons.push("ambiguous_or_missing_evidence");
+  if (contains(text, ["morning brief", "daily executive brief", "board brief", "strategic daily plan"])) councilReasons.push("morning brief requires council synthesis");
 
   const localColdAllowed = Boolean(
     owner &&
@@ -113,14 +113,14 @@ function classify(input = {}) {
     !restricted &&
       urgency === "P3" &&
       temperature < 45 &&
-      HOSTINGER_LOCAL_CATEGORIES.has(category)
+      RUNNER_LOCAL_CATEGORIES.has(category)
   );
 
-  const route = ovhReasons.length
-    ? "ovh_required"
+  const route = councilReasons.length
+    ? "council_required"
     : (localColdAllowed || localRoutineAllowed)
-      ? "hostinger_local"
-      : "hostinger_review_first";
+      ? "runner_local"
+      : "runner_review_first";
 
   return {
     ok: true,
@@ -132,26 +132,26 @@ function classify(input = {}) {
     temperature,
     mail_label: mailLabel,
     execution: {
-      sender: "hostinger",
-      communicator: "hostinger",
-      email_sender: "hostinger",
-      whatsapp_sender: "hostinger",
-      crm_writer: "hostinger",
-      hard_analysis: route === "ovh_required" ? "ovh" : "hostinger"
+      sender: "runner",
+      communicator: "runner",
+      email_sender: "runner",
+      whatsapp_sender: "runner",
+      crm_writer: "runner",
+      hard_analysis: route === "council_required" ? "council" : "runner"
     },
     policy: {
-      hostinger_may_send_without_ovh: route === "hostinger_local" && mailLabel === "cold_mail" && hasVerifiedContact && publicEvidence,
-      hostinger_may_reply_without_ovh: route === "hostinger_local" && ["simple_chat", "daily_communications", "mail_labeling"].includes(category),
-      ovh_may_send: false,
-      ovh_prepares_only: true,
-      owner_approval_required: route === "ovh_required" || restricted || temperature >= 45 || mailLabel === "warm_mail" || mailLabel === "hot_mail"
+      runner_may_send_without_council: route === "runner_local" && mailLabel === "cold_mail" && hasVerifiedContact && publicEvidence,
+      runner_may_reply_without_council: route === "runner_local" && ["simple_chat", "daily_communications", "mail_labeling"].includes(category),
+      council_may_send: false,
+      council_prepares_only: true,
+      owner_approval_required: route === "council_required" || restricted || temperature >= 45 || mailLabel === "warm_mail" || mailLabel === "hot_mail"
     },
-    reasons: ovhReasons.length ? ovhReasons : ["low_temperature_or_routine_hostinger_work"],
-    next_step: route === "ovh_required"
-      ? "Send compact evidence packet to OVH. Hostinger executes only after OVH returns a recommendation and owner/policy allows it."
-      : route === "hostinger_local"
-        ? "Handle locally on Hostinger. Do not call OVH."
-        : "Ask owner or collect more evidence before OVH escalation."
+    reasons: councilReasons.length ? councilReasons : ["low_temperature_or_routine_runner_work"],
+    next_step: route === "council_required"
+      ? "Send compact evidence packet to council. runner executes only after council returns a recommendation and owner/policy allows it."
+      : route === "runner_local"
+        ? "Handle locally on runner. Do not call council."
+        : "Ask owner or collect more evidence before council escalation."
   };
 }
 
@@ -173,7 +173,7 @@ function inferCategory(text, input = {}) {
   if (contains(text, ["crm", "pipeline", "follow-up", "follow up", "lead stage"])) return "crm_pipeline";
   if (contains(text, ["invoice", "receipt", "bank transaction", "qonto"])) return "invoice_reconciliation";
   if (contains(text, ["legal", "accounting", "fiscal", "tax", "urssaf", "dsn", "statuts"])) return "legal_accounting";
-  if (contains(text, ["vercel", "railway", "ovh", "hostinger", "deploy", "uptime", "security"])) return "cto_audit";
+  if (contains(text, ["vercel", "railway", "council", "runner", "deploy", "uptime", "security"])) return "cto_audit";
   if (contains(text, ["whatsapp", "telegram", "customer asks", "client asks"])) return "daily_communications";
   return "simple_chat";
 }

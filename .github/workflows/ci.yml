@@ -45,7 +45,7 @@ jobs:
           node-version: "20"
       - name: Smoke test (routing, dedup, safety gates)
         run: node scripts/smoke_test.js
-      - name: Hardening test (ovh_may_send invariant, safety gates)
+      - name: Hardening test (council_may_send invariant, safety gates)
         run: node scripts/hardening_test.js
       - name: Full check
         run: node scripts/check_all.js
@@ -79,13 +79,13 @@ jobs:
             exit 1
           fi
           echo "PASS: no committed secrets"
-      - name: ovh_may_send invariant (council safety gate must never be true)
+      - name: council_may_send invariant (council safety gate must never be true)
         run: |
-          if grep -rn "ovh_may_send.*true\|ovh_may_send: true" --include="*.js" packages/; then
-            echo "FAIL: ovh_may_send set to true somewhere"
+          if grep -rn "council_may_send.*true\|council_may_send: true" --include="*.js" packages/; then
+            echo "FAIL: council_may_send set to true somewhere"
             exit 1
           fi
-          echo "PASS: ovh_may_send invariant holds in source"
+          echo "PASS: council_may_send invariant holds in source"
 
   # ── gate: all jobs must pass before merge ─────────────────────────────────
   all-pass:

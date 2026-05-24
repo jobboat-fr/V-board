@@ -19,7 +19,7 @@ import zipfile
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
-ROOT = Path(os.environ.get("OPENCLAW_WORKSPACE", "/data/.openclaw/workspace"))
+ROOT = Path(os.environ.get("AZZCO_WORKSPACE", os.environ.get("OPENCLAW_WORKSPACE", "/workspace")))
 DOCS = ROOT / "docs"
 ACCOUNTING = ROOT / "accounting"
 OUT = ROOT / "ops" / "context"

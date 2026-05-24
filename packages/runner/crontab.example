@@ -1,0 +1,36 @@
+# AZZCO Runner — example crontab for supercronic
+# Copy to /etc/azzco-crontab inside the container, or mount your own file.
+# Set AZZCO_CRONTAB_FILE=/path/to/your/crontab in the environment.
+#
+# All times UTC. Adjust to your timezone by offsetting from Europe/Paris (UTC+1/+2).
+#
+# Format: minute hour dom month dow command
+
+# Morning brief — 07:30 UTC (08:30/09:30 Paris)
+30 7 * * *  /workspace/run_delegated_job.sh morning_brief P2
+
+# Evening brief — 17:30 UTC (18:30/19:30 Paris)
+30 17 * * * /workspace/run_delegated_job.sh morning_brief P2
+
+# Mail triage — 08:30 and 18:30 UTC
+30 8,18 * * * /workspace/run_delegated_job.sh mail_triage P2
+
+# CRM pipeline — 19:15 UTC
+15 19 * * * /workspace/run_delegated_job.sh crm_pipeline P3
+
+# Incident watchdog — hourly during business hours (07:00–20:00 UTC)
+0 7-20 * * * /workspace/run_delegated_job.sh incident_watchdog P1
+
+# Cost guardrail — 19:30 UTC daily
+30 19 * * * node /workspace/bin/azzco_cost_guardrail_deterministic.js --send
+
+# Token governor (Python context compactor) — 07:10 and 17:10 UTC
+10 7,17 * * * python3 /workspace/token_governor.py
+
+# Document memory refresh — 07:05 UTC daily
+5 7 * * * node /workspace/bin/azzco_document_memory_refresh.js
+
+# Weekly deep scans — Sunday 05:00 UTC
+0 5 * * 0  /workspace/run_delegated_job.sh deep_legal_scan P1
+30 5 * * 0 /workspace/run_delegated_job.sh deep_accounting_scan P1
+0 6 * * 0  /workspace/run_delegated_job.sh weekly_board_brief P2

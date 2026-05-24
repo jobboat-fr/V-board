@@ -4,7 +4,7 @@
 const fs = require("fs");
 const path = require("path");
 
-const ROOT = "/data/.openclaw/workspace";
+const ROOT = process.env.AZZCO_WORKSPACE || "/workspace";
 const RUNNER = path.join(ROOT, "ops/runner");
 const OUT = path.join(RUNNER, "CURRENT_STATUS.md");
 
@@ -66,9 +66,9 @@ const text = [
   "",
   "Source of truth:",
   "- Canonical scheduler: host Linux cron /etc/cron.d/azzco-openclaw-runner",
-  "- Workspace mirror: /data/.openclaw/workspace/ops/runner/azzco-openclaw-runner.cron",
+  `- Workspace mirror: ${ROOT}/ops/runner/azzco-openclaw-runner.cron`,
   "- OpenClaw hard-work agent-crons are intentionally disabled. Do not report them as missing.",
-  "- Execution: Hostinger collects/delivers, OVH analyzes/prepares.",
+  "- Execution: runner collects/delivers, council analyzes/prepares.",
   "",
   "Latest deterministic runner statuses:",
   ...categories.map(oneLineStatus),

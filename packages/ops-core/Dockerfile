@@ -1,21 +1,32 @@
-FROM node:24-alpine
-
+# ── ops-core — routing gate, MCP server, HTTP API ───────────────────────────
+FROM node:20-alpine AS base
 WORKDIR /app
-COPY package.json package.json
-COPY src src
-COPY docs docs
+
+# Install production dependencies only
+COPY package.json package-lock.json* ./
+RUN npm ci --omit=dev
+
+# Copy source + docs
+COPY src/ ./src/
+COPY docs/ ./docs/
 COPY .env.example .env.example
 
-ENV NODE_ENV=production
-ENV AZZCO_API_HOST=0.0.0.0
-ENV AZZCO_API_PORT=8788
-ENV AZZCO_DATA_ROOT=/var/lib/azzco-ops-core
+# Data directory owned by node user
+RUN mkdir -p /data/ops/logs && chown -R node:node /data
 
-VOLUME ["/var/lib/azzco-ops-core"]
+USER node
 
 EXPOSE 8788
 
-HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
-  CMD node -e "fetch('http://127.0.0.1:8788/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+ENV NODE_ENV=production \
+    AZZCO_API_HOST=0.0.0.0 \
+    AZZCO_API_PORT=8788 \
+    AZZCO_DATA_ROOT=/data \
+    AZZCO_COUNCIL_URL=http://council:8787/route
+
+VOLUME ["/data"]
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
+  CMD node -e "require('http').get('http://127.0.0.1:8788/health',r=>{process.exit(r.statusCode===200?0:1)}).on('error',()=>process.exit(1))"
 
 CMD ["node", "src/cli.js", "api"]

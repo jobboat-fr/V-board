@@ -64,7 +64,7 @@ function createServer(config) {
           ok: true,
           service: "azzco-ops-core",
           version: "0.1.0",
-          role: "hostinger-operator-or-ovh-gateway",
+          role: "runner-operator-or-council-gateway",
           serverName: config.observability.serverName,
           time: new Date().toISOString()
         });
@@ -112,9 +112,9 @@ function createServer(config) {
         eventContext.route = route.route;
         eventContext.department = department;
         eventContext.metadata.category = route.category;
-        const result = route.route === "ovh_required"
+        const result = route.route === "council_required"
           ? await routeOrBridge(payload, config)
-          : { ok: true, route, action: "hostinger_handle_locally", department };
+          : { ok: true, route, action: "runner_handle_locally", department };
         return sendJson(res, 200, { ok: true, department, route, result });
       }
 

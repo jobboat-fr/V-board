@@ -9,9 +9,9 @@ concurrency:
   cancel-in-progress: false   # never cancel a running deploy
 
 jobs:
-  # ── Deploy ops-core to Hostinger ──────────────────────────────────────────
-  deploy-hostinger:
-    name: Deploy ops-core → Hostinger
+  # ── Docker Compose deploy — single server (primary) ───────────────────────
+  deploy:
+    name: Deploy → production server
     runs-on: ubuntu-latest
     environment: production
     steps:
@@ -20,94 +20,62 @@ jobs:
       - name: Set up SSH key
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.HOSTINGER_SSH_KEY }}" > ~/.ssh/id_ed25519
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -H "${{ secrets.HOSTINGER_HOST }}" >> ~/.ssh/known_hosts
+          ssh-keyscan -H "${{ secrets.DEPLOY_HOST }}" >> ~/.ssh/known_hosts
 
-      - name: Sync ops-core into container
+      - name: Sync repository to server
         run: |
-          # Rsync source into container via host
           rsync -az --delete \
-            --exclude=node_modules \
-            --exclude=.secrets \
-            --exclude=tmp-server-*.log \
+            --exclude=.git \
+            --exclude='packages/*/node_modules' \
+            --exclude='packages/*/.secrets' \
+            --exclude='.env' \
+            --exclude='*.log' \
             -e "ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no" \
-            packages/ops-core/ \
-            root@${{ secrets.HOSTINGER_HOST }}:/tmp/ops-core-deploy/
+            ./ \
+            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/opt/v-board/
 
-          # Copy into container and restart
+      - name: Build and restart containers
+        run: |
           ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
-            root@${{ secrets.HOSTINGER_HOST }} "
-            docker cp /tmp/ops-core-deploy/. openclaw-uix8-openclaw-1:/data/.openclaw/workspace/azzco-ops-core/
-            docker exec openclaw-uix8-openclaw-1 sh -c 'cd /data/.openclaw/workspace/azzco-ops-core && npm ci --omit=dev'
-            docker exec openclaw-uix8-openclaw-1 sh -c 'cd /data/.openclaw/workspace/azzco-ops-core && npm test'
-            docker exec openclaw-uix8-openclaw-1 kill -HUP \$(pgrep -f 'node src/cli.js api') 2>/dev/null || true
-            echo 'ops-core deployed to Hostinger'
+            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} "
+            set -e
+            cd /opt/v-board
+
+            # Pull latest images and rebuild changed services
+            docker compose build --no-cache ops-core council
+
+            # Rolling restart: council first (ops-core depends on it)
+            docker compose up -d --no-deps council
+            sleep 5
+
+            # Verify council health before bringing up ops-core
+            docker compose exec council node -e \"
+              require('http').get('http://127.0.0.1:8787/health', r => {
+                process.exit(r.statusCode === 200 ? 0 : 1)
+              }).on('error', () => process.exit(1))
+            \"
+
+            docker compose up -d --no-deps ops-core
+            sleep 5
+
+            # Verify ops-core health
+            curl -sf http://127.0.0.1:8788/health | grep '\"ok\":true'
+
+            # Restart runner (picks up new bin scripts)
+            docker compose up -d --no-deps runner
+
+            echo '✓ Deployment complete'
+            docker compose ps
           "
 
-      - name: Sync runner bin scripts
-        run: |
-          rsync -az \
-            -e "ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no" \
-            packages/runner/bin/ \
-            root@${{ secrets.HOSTINGER_HOST }}:/tmp/runner-bin-deploy/
-
-          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
-            root@${{ secrets.HOSTINGER_HOST }} "
-            docker cp /tmp/runner-bin-deploy/. openclaw-uix8-openclaw-1:/data/.openclaw/workspace/bin/
-            echo 'runner bin scripts updated'
-          "
-
-  # ── Deploy council to OVH ─────────────────────────────────────────────────
-  deploy-ovh:
-    name: Deploy council → OVH
-    runs-on: ubuntu-latest
-    environment: production
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up SSH key
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.OVH_SSH_KEY }}" > ~/.ssh/id_ed25519_ovh
-          chmod 600 ~/.ssh/id_ed25519_ovh
-          ssh-keyscan -H "${{ secrets.OVH_HOST }}" >> ~/.ssh/known_hosts
-
-      - name: Sync council to OVH
-        run: |
-          rsync -az --delete \
-            --exclude=node_modules \
-            --exclude=data/route_log.jsonl \
-            --exclude=data/budget_state.json \
-            -e "ssh -i ~/.ssh/id_ed25519_ovh -o StrictHostKeyChecking=no" \
-            packages/council/ \
-            ubuntu@${{ secrets.OVH_HOST }}:/opt/azzco-council/core/
-
-          ssh -i ~/.ssh/id_ed25519_ovh -o StrictHostKeyChecking=no \
-            ubuntu@${{ secrets.OVH_HOST }} "
-            # Smoke test before restart
-            cd /opt/azzco-council/core && node scripts/smoke_test.js
-            node scripts/hardening_test.js
-            # Graceful restart — council is a bare node process
-            pkill -f 'node src/server.js' || true
-            nohup node src/server.js >> /var/log/azzco/council.log 2>&1 &
-            echo 'council deployed to OVH'
-          "
-
-      - name: Sync ops-core to OVH
-        run: |
-          rsync -az --delete \
-            --exclude=node_modules \
-            --exclude=.secrets \
-            -e "ssh -i ~/.ssh/id_ed25519_ovh -o StrictHostKeyChecking=no" \
-            packages/ops-core/ \
-            ubuntu@${{ secrets.OVH_HOST }}:/opt/azzco-ops-core/
-
-          ssh -i ~/.ssh/id_ed25519_ovh -o StrictHostKeyChecking=no \
-            ubuntu@${{ secrets.OVH_HOST }} "
-            cd /opt/azzco-ops-core && npm ci --omit=dev
-            npm test
-            pkill -f 'node src/cli.js api' || true
-            nohup node src/cli.js api >> /var/log/azzco/ops-core.log 2>&1 &
-            echo 'ops-core deployed to OVH'
-          "
+  # ── Optional: two-server deploy (uncomment if using separate servers) ──────
+  # deploy-server1:
+  #   name: Deploy → server 1 (ops-core + runner)
+  #   ...
+  # deploy-server2:
+  #   name: Deploy → server 2 (council)
+  #   ...
+  #
+  # See deploy/README.md for two-server manual deploy instructions.

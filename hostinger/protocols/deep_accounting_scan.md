@@ -3,7 +3,7 @@
 Use deep_legal_accounting_pipeline.md.
 
 Scan:
-/data/.openclaw/workspace/accounting
+$AZZCO_WORKSPACE/accounting
 
 Focus:
 - bank statements

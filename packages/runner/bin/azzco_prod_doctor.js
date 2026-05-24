@@ -4,9 +4,10 @@ const { spawnSync } = require("child_process");
 const fs = require("fs");
 const http = require("http");
 
-const ROUTE_SCRIPT = "/data/.openclaw/workspace/bin/azzco_route_policy.js";
-const JOBS_PATH = "/data/.openclaw/cron/jobs.json";
-const RUNNER_ROOT = "/data/.openclaw/workspace/ops/runner";
+const WORKSPACE = process.env.AZZCO_WORKSPACE || "/workspace";
+const ROUTE_SCRIPT = process.env.AZZCO_ROUTE_SCRIPT || `${WORKSPACE}/bin/azzco_route_policy.js`;
+const JOBS_PATH = process.env.AZZCO_JOBS_PATH || "/workspace/.openclaw/cron/jobs.json";
+const RUNNER_ROOT = `${WORKSPACE}/ops/runner`;
 
 function run(command, args, input = null, timeoutMs = 60000) {
   const result = spawnSync(command, args, {
@@ -90,8 +91,8 @@ function httpGetJson(url, timeoutMs = 5000) {
 async function main() {
   const routeTests = [
     {
-      name: "cold_low_hostinger",
-      expect: "hostinger_local",
+      name: "cold_low_runner",
+      expect: "runner_local",
       payload: {
         category: "cold_email_campaign",
         urgency: "P3",
@@ -104,7 +105,7 @@ async function main() {
     },
     {
       name: "hot_sales_ovh",
-      expect: "ovh_required",
+      expect: "council_required",
       payload: {
         category: "sales_reply",
         urgency: "P2",
@@ -116,7 +117,7 @@ async function main() {
     },
     {
       name: "legal_ovh",
-      expect: "ovh_required",
+      expect: "council_required",
       payload: {
         category: "legal_accounting",
         urgency: "P1",
@@ -126,7 +127,7 @@ async function main() {
     },
     {
       name: "morning_brief_ovh",
-      expect: "ovh_required",
+      expect: "council_required",
       payload: {
         category: "morning_brief",
         urgency: "P2",
@@ -136,7 +137,7 @@ async function main() {
     },
     {
       name: "mail_triage_ovh",
-      expect: "ovh_required",
+      expect: "council_required",
       payload: {
         category: "mail_triage",
         urgency: "P2",
@@ -146,7 +147,7 @@ async function main() {
     },
     {
       name: "legal_finance_sentinel_ovh",
-      expect: "ovh_required",
+      expect: "council_required",
       payload: {
         category: "legal_finance_sentinel",
         urgency: "P1",
@@ -156,7 +157,7 @@ async function main() {
     },
     {
       name: "invoice_reconciliation_ovh",
-      expect: "ovh_required",
+      expect: "council_required",
       payload: {
         category: "invoice_reconciliation",
         urgency: "P2",
@@ -166,17 +167,17 @@ async function main() {
     },
     {
       name: "cto_audit_ovh",
-      expect: "ovh_required",
+      expect: "council_required",
       payload: {
         category: "cto_audit",
         urgency: "P2",
         owner: true,
-        prompt: "Audit OVH, Hostinger, Vercel, Railway, security, deployment, uptime and cost risk."
+        prompt: "Audit council, runner, Vercel, Railway, security, deployment, uptime and cost risk."
       }
     },
     {
       name: "deal_desk_ovh",
-      expect: "ovh_required",
+      expect: "council_required",
       payload: {
         category: "deal_desk",
         urgency: "P2",
@@ -188,7 +189,7 @@ async function main() {
     },
     {
       name: "approval_queue_ovh",
-      expect: "ovh_required",
+      expect: "council_required",
       payload: {
         category: "approval_queue",
         urgency: "P2",
@@ -198,7 +199,7 @@ async function main() {
     },
     {
       name: "non_owner_restricted_ovh",
-      expect: "ovh_required",
+      expect: "council_required",
       payload: {
         category: "daily_communications",
         urgency: "P3",
@@ -208,7 +209,7 @@ async function main() {
     },
     {
       name: "crm_low_local",
-      expect: "hostinger_local",
+      expect: "runner_local",
       payload: {
         category: "crm_pipeline",
         urgency: "P3",

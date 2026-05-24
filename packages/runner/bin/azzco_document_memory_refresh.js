@@ -6,7 +6,7 @@ const path = require("path");
 const crypto = require("crypto");
 const { spawnSync } = require("child_process");
 
-const ROOT = "/data/.openclaw/workspace";
+const ROOT = process.env.AZZCO_WORKSPACE || "/workspace";
 const DOC_DIRS = [
   path.join(ROOT, "docs"),
   path.join(ROOT, "accounting")
@@ -475,7 +475,7 @@ fs.writeFileSync(path.join(OUT_DIR, "daily_context.md"), `${dailyContext}\n`);
 // Run cfoStack build to generate double-entry ledger and finance_report.json
 let cfoResult = null;
 try {
-  const cfoRun = spawnSync("node", ["/data/.openclaw/workspace/bin/azzco_finance_run.js", "build"], {
+  const cfoRun = spawnSync("node", [path.join(ROOT, "bin/azzco_finance_run.js"), "build"], {
     encoding: "utf8",
     timeout: 30000
   });
