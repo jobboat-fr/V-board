@@ -81,7 +81,7 @@ function inferPainPoints(text = "") {
   return points.length ? points : ["needs_discovery"];
 }
 
-function azzingScore({ text = "", entities = extractEntities(text), sector = inferSector(text), painPoints = inferPainPoints(text) } = {}) {
+function prospectScore({ text = "", entities = extractEntities(text), sector = inferSector(text), painPoints = inferPainPoints(text) } = {}) {
   const hasReachableContact = entities.emails.length > 0 || entities.websites.length > 0 || entities.phones.length > 0;
   const structure = hasReachableContact ? 8 : 5;
   const timing = containsAny(text, ["hiring", "launch", "new", "growth", "urgent", "opening", "recrute", "lancement"]) ? 8 : 6;
@@ -135,7 +135,7 @@ function buildCompanySignals(request = {}, route = {}) {
     entities,
     sector,
     painPoints,
-    azzing: azzingScore({ text, entities, sector, painPoints }),
+    prospect_score: prospectScore({ text, entities, sector, painPoints }),
     token_policy: {
       mode: restricted || urgency === "P0" || urgency === "P1" ? "evidence_packet_first" : "compact_context",
       include_raw_docs: false,
@@ -152,5 +152,5 @@ module.exports = {
   detectRestricted,
   inferSector,
   inferPainPoints,
-  azzingScore
+  prospectScore
 };

@@ -73,7 +73,7 @@ jobs:
           echo "PASS: no private server IPs in code"
       - name: Scan for committed secrets
         run: |
-          PATTERNS="SUPABASE_SERVICE_ROLE_KEY=ey\|VBOARD_API_TOKEN=vboard_\|VBOARD_COUNCIL_TOKEN=[a-f0-9]\{32\}"
+          PATTERNS="VBOARD_EVENT_SINK_TOKEN=ey\|VBOARD_API_TOKEN=vboard_\|VBOARD_COUNCIL_TOKEN=[a-f0-9]\{32\}"
           if grep -rn "$PATTERNS" --include="*.js" --include="*.sh" --include="*.py" --include="*.env" . 2>/dev/null | grep -v ".env.example"; then
             echo "FAIL: committed secret detected"
             exit 1

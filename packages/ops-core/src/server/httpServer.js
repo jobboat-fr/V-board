@@ -76,7 +76,7 @@ function createServer(config) {
           councilConfigured: Boolean(config.council.token),
           authConfigured: Boolean(config.api.token || config.api.keysFile || config.api.keysJson),
           observabilityConfigured: true,
-          supabaseConfigured: Boolean(config.supabase.url && config.supabase.serviceRoleKey)
+          eventSinkConfigured: Boolean(config.eventSink.url)
         });
       }
 
@@ -126,8 +126,8 @@ function createServer(config) {
         return sendJson(res, 200, { ok: true, events: observability.readEvents({ limit }) });
       }
 
-      if (req.method === "GET" && requestUrl.pathname === "/v1/observability/supabase") {
-        return sendJson(res, 200, { ok: true, supabase: observability.summary().supabase });
+      if (req.method === "GET" && requestUrl.pathname === "/v1/observability/sink") {
+        return sendJson(res, 200, { ok: true, eventSink: observability.summary().eventSink });
       }
 
       if (req.method === "POST" && requestUrl.pathname === "/v1/observability/test") {

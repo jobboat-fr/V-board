@@ -287,6 +287,10 @@ async function testHttpApi() {
     assert.strictEqual(obsSummary.status, 200);
     assert.strictEqual(obsSummary.body.ok, true);
     assert.ok(obsSummary.body.totalEvents >= 1);
+    assert.strictEqual(obsSummary.body.eventSink.configured, false);
+    const obsSink = await request(port, "GET", "/v1/observability/sink", null, opsKey.token);
+    assert.strictEqual(obsSink.status, 200);
+    assert.strictEqual(obsSink.body.eventSink.configured, false);
     const obsEvents = await request(port, "GET", "/v1/observability/events?limit=10", null, opsKey.token);
     assert.strictEqual(obsEvents.status, 200);
     assert.ok(Array.isArray(obsEvents.body.events));
@@ -559,7 +563,7 @@ async function testBankFullPullFeedsCfoStack() {
       return {
         ok: true,
         status: 200,
-        text: async () => JSON.stringify({ organization: { id: "org-1", slug: "azz", name: "AZZ", bank_accounts: [{ id: "ba-1", name: "Main" }] } })
+        text: async () => JSON.stringify({ organization: { id: "org-1", slug: "demo", name: "Demo Org", bank_accounts: [{ id: "ba-1", name: "Main" }] } })
       };
     }
     if (pathname.endsWith("/transactions") && side === "credit" && page === 1) {

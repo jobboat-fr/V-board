@@ -32,7 +32,7 @@ function scopeFor(method, pathname) {
   if (method === "POST" && pathname === "/v1/finance/pull-bank") return ["finance:write", "bank:pull"];
   if (method === "GET" && pathname === "/v1/observability/summary") return ["observability:read"];
   if (method === "GET" && pathname === "/v1/observability/events") return ["observability:read"];
-  if (method === "GET" && pathname === "/v1/observability/supabase") return ["observability:read"];
+  if (method === "GET" && pathname === "/v1/observability/sink") return ["observability:read"];
   if (method === "POST" && pathname === "/v1/observability/test") return ["observability:write"];
   return [];
 }

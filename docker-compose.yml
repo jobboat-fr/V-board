@@ -56,9 +56,10 @@ services:
       VBOARD_OWNER_WHATSAPP: "${VBOARD_OWNER_WHATSAPP:-}"
       VBOARD_SERVER_NAME: "ops-core"
       VBOARD_LOG_LEVEL: "${VBOARD_LOG_LEVEL:-info}"
-      SUPABASE_URL: "${SUPABASE_URL:-}"
-      SUPABASE_SERVICE_ROLE_KEY: "${SUPABASE_SERVICE_ROLE_KEY:-}"
-      VBOARD_SUPABASE_ENABLED: "${VBOARD_SUPABASE_ENABLED:-false}"
+      VBOARD_EVENT_SINK_ENABLED: "${VBOARD_EVENT_SINK_ENABLED:-false}"
+      VBOARD_EVENT_SINK_URL: "${VBOARD_EVENT_SINK_URL:-}"
+      VBOARD_EVENT_SINK_TOKEN: "${VBOARD_EVENT_SINK_TOKEN:-}"
+      VBOARD_EVENT_SINK_TOKEN_HEADER: "${VBOARD_EVENT_SINK_TOKEN_HEADER:-authorization}"
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:8788/health',r=>{process.exit(r.statusCode===200?0:1)}).on('error',()=>process.exit(1))"]
       interval: 30s

@@ -1,6 +1,6 @@
 -- VBOARD Ops Core observability table.
--- Run this once in the Supabase SQL editor for project slcyxhdwijchhxauodivn.
--- The service_role key bypasses RLS server-side. Do not add public read policies.
+-- Optional Postgres table shape for a generic REST event sink.
+-- Keep write credentials server-side only. Do not add public read policies.
 
 create extension if not exists pgcrypto;
 
@@ -35,4 +35,4 @@ create index if not exists vboard_api_events_status_idx
   on public.vboard_api_events (status);
 
 comment on table public.vboard_api_events is
-  'VBOARD Ops Core server-side API observability events. Service-role writes only; no public RLS policy.';
+  'VBOARD Ops Core server-side API observability events. Server-side writes only; no public RLS policy.';

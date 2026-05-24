@@ -108,7 +108,7 @@ function dashboardHtml() {
   <header>
     <div>
       <h1>VBOARD Ops Live</h1>
-      <div class="sub">API health, routing, auth scopes, request logs, Supabase sink</div>
+      <div class="sub">API health, routing, auth scopes, request logs, event sink</div>
     </div>
     <div class="pill" id="refreshState">Starting</div>
   </header>
@@ -147,8 +147,8 @@ function dashboardHtml() {
       </section>
 
       <section class="wide">
-        <h2>Supabase Sink</h2>
-        <div id="supabaseRows"></div>
+        <h2>Event Sink</h2>
+        <div id="eventSinkRows"></div>
       </section>
 
       <section class="wide">
@@ -253,15 +253,15 @@ function dashboardHtml() {
         setMetric("eventMetric", summary.totalEvents || 0, "ok");
         setMetric("errorMetric", summary.errorEvents || 0, summary.errorEvents ? "warn" : "ok");
         $("eventSub").textContent = summary.logsPath || "local JSONL";
-        $("supabaseRows").innerHTML = rows({
-          configured: summary.supabase?.configured,
-          ok: summary.supabase?.ok,
-          table: summary.supabase?.table || "n/a",
-          lastSuccessAt: summary.supabase?.lastSuccessAt || "n/a",
-          lastError: summary.supabase?.lastError || "none"
+        $("eventSinkRows").innerHTML = rows({
+          configured: summary.eventSink?.configured,
+          ok: summary.eventSink?.ok,
+          tokenConfigured: summary.eventSink?.tokenConfigured,
+          lastSuccessAt: summary.eventSink?.lastSuccessAt || "n/a",
+          lastError: summary.eventSink?.lastError || "none"
         });
       } catch (error) {
-        $("supabaseRows").innerHTML = '<div class="bad">Protected endpoints need a valid token: ' + error.message + '</div>';
+        $("eventSinkRows").innerHTML = '<div class="bad">Protected endpoints need a valid token: ' + error.message + '</div>';
       }
       try {
         const events = await getJson("/v1/observability/events?limit=60", true);
