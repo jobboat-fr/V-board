@@ -32,7 +32,7 @@ We will respond within 48 hours and aim to patch within 7 days for critical issu
 - Rotate `VBOARD_COUNCIL_TOKEN` and `VBOARD_API_TOKEN` periodically. Use at least 32 random bytes.
 - API key hashes (`api_keys.json`) should live in `.secrets/` with `chmod 600`. Never commit.
 - SSH keys for CI deploy should use dedicated keys with no passphrase, scoped to the deploy user only.
-- Supabase `service_role` key is server-side only — never expose in browser/frontend code.
+- Event-sink credentials are server-side only; never expose `VBOARD_EVENT_SINK_TOKEN` in browser/frontend code.
 
 ## Meeting Room (port 8790)
 

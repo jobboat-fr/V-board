@@ -63,8 +63,8 @@ function hasBlocked(result, key) {
       sector: "unknown"
     }
   });
-  assert(hasBlocked(weakCold, "email:send_cold_email"), "AZZING reject should block cold auto-send");
-  assert(weakCold.decision.safety_gates.includes("AZZING_REJECT_BLOCKS_AUTOSEND"), "AZZING reject gate should trigger");
+  assert(hasBlocked(weakCold, "email:send_cold_email"), "Cold reject should block cold auto-send");
+  assert(weakCold.decision.safety_gates.includes("COLD_REJECT_BLOCKS_AUTOSEND"), "Cold reject gate should trigger");
   assert.notStrictEqual(weakCold.workflow.work_order.automation_level, "L2_AUTO_SEND_COLD", "weak cold campaign must not be executable");
 
   const hot = await engine.handle({

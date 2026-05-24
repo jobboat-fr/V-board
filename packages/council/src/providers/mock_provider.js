@@ -20,7 +20,7 @@ class MockProvider {
       if (workflow.lead.email) facts.push("[EMP] Public email/contact channel present.");
       if (!workflow.lead.email) missing.push("Verified public business email");
       estimates.push(`[EST] Best Example Company offer: ${workflow.offer}.`);
-      checks.push(`AZZING decision: ${signals.azzing?.decision || "unknown"} (${signals.azzing?.D_fast ?? "n/a"}).`);
+      checks.push(`Prospect score decision: ${signals.prospect_score?.decision || "unknown"} (D_fast: ${signals.prospect_score?.D_fast ?? "n/a"}).`);
       if (workflow.mail_policy) {
         facts.push(`[EMP] Mail labeled ${workflow.mail_policy.label} with temperature ${workflow.mail_policy.temperature_score}/100.`);
         checks.push(`Automation mode: ${workflow.mail_policy.automation_mode}.`);

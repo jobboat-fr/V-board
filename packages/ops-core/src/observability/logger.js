@@ -5,7 +5,7 @@ const fs = require("fs");
 const path = require("path");
 const winston = require("winston");
 const { appendEvent, logDir, readEvents, summarizeEvents } = require("./logStore");
-const { shipEventToSupabase, supabaseStatus } = require("./supabaseSink");
+const { shipEventToRestSink, eventSinkStatus } = require("./restEventSink");
 
 function createWinstonLogger(config) {
   const dir = logDir(config);
@@ -39,11 +39,11 @@ function createObservability(config) {
       ...event
     });
     logger.log(clean.level || "info", clean.eventType || "api.event", clean);
-    if (config.supabase?.enabled !== false) {
+    if (config.eventSink?.enabled !== false) {
       try {
-        await shipEventToSupabase(config, clean);
+        await shipEventToRestSink(config, clean);
       } catch (error) {
-        logger.warn("supabase.log_failed", { error: error.message, requestId: clean.requestId });
+        logger.warn("event_sink.log_failed", { error: error.message, requestId: clean.requestId });
       }
     }
     return clean;
@@ -55,7 +55,7 @@ function createObservability(config) {
     readEvents: (options) => readEvents(config, options),
     summary: () => ({
       ...summarizeEvents(config),
-      supabase: supabaseStatus(config),
+      eventSink: eventSinkStatus(config),
       serverName: config.observability?.serverName
     })
   };
