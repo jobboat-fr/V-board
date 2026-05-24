@@ -1,0 +1,22 @@
+# Meeting Room — Python dependencies
+# Exact-pinned. Update by bumping the version AND testing before deploying.
+
+# ── Web server ────────────────────────────────────────────────────
+fastapi==0.136.1
+uvicorn[standard]==0.46.0
+pydantic==2.13.4
+python-multipart==0.0.27
+
+# ── HTTP client (Tavus REST + ElevenLabs) ─────────────────────────
+httpx==0.28.1
+
+# ── AI providers — council (Anthropic + OpenAI + Google) ─────────
+anthropic==0.86.0
+openai==2.24.0
+google-generativeai==0.8.5
+
+# ── STT — Groq Whisper ────────────────────────────────────────────
+groq==1.2.0
+
+# ── Config ────────────────────────────────────────────────────────
+python-dotenv==1.2.2

@@ -1,0 +1,145 @@
+name: Meeting Room
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+    paths:
+      - "packages/meeting-room/**"
+      - ".github/workflows/meeting-room.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "packages/meeting-room/**"
+      - ".github/workflows/meeting-room.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: meeting-room-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+
+  # ── Python tests + static security guardrails ────────────────────────────────
+  python:
+    name: Python tests & guardrails
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: packages/meeting-room/requirements.txt
+
+      - name: Install dependencies
+        run: |
+          pip install -r packages/meeting-room/requirements.txt
+          pip install pytest pytest-asyncio
+
+      - name: Syntax check
+        run: |
+          python - <<'PY'
+          import py_compile
+          from pathlib import Path
+          paths = list(Path("packages/meeting-room/adapters/meeting_room").glob("**/*.py"))
+          paths += list(Path("packages/meeting-room/scripts").glob("**/*.py"))
+          for p in paths:
+              py_compile.compile(str(p), doraise=True)
+          print(f"Syntax OK — {len(paths)} files checked")
+          PY
+
+      - name: Security guardrails
+        working-directory: packages/meeting-room
+        run: |
+          python scripts/check_meeting_room_security.py
+          bash -n scripts/security/harden-docker-published-port.sh
+
+      - name: Tests
+        working-directory: packages/meeting-room
+        run: |
+          python -m pytest tests/ -q -o addopts=''
+        env:
+          PYTHONPATH: .
+          ANTHROPIC_API_KEY: ""
+          OPENAI_API_KEY: ""
+          GOOGLE_API_KEY: ""
+          GROQ_API_KEY: ""
+          ELEVENLABS_API_KEY: ""
+          TAVUS_API_KEY: ""
+
+  # ── Container build + smoke test ─────────────────────────────────────────────
+  container:
+    name: Docker build & smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v4
+
+      - name: Build image
+        run: |
+          docker build \
+            -f packages/meeting-room/Dockerfile \
+            -t vboard-meeting-room:ci \
+            packages/meeting-room/
+
+      - name: Smoke test
+        run: |
+          set -euo pipefail
+          docker run -d --name vboard-meeting-room-ci \
+            -e MEETING_ROOM_API_TOKEN=test-token \
+            -e MEETING_ROOM_REQUIRE_TOKEN=true \
+            -p 127.0.0.1:8790:8790 \
+            vboard-meeting-room:ci
+
+          trap 'docker logs vboard-meeting-room-ci || true; docker rm -f vboard-meeting-room-ci || true' EXIT
+
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8790/health >/dev/null 2>&1; then break; fi
+            sleep 1
+          done
+
+          # Health probe
+          curl -fsS http://127.0.0.1:8790/health
+
+          # Unauthenticated request must be 401
+          status="$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:8790/meeting/status)"
+          test "$status" = "401" || (echo "Expected 401, got $status" && exit 1)
+
+          # Authenticated request must succeed
+          curl -fsS \
+            -H "Authorization: Bearer test-token" \
+            http://127.0.0.1:8790/meeting/status
+
+          echo "Smoke test passed"
+
+      - name: Publish to GHCR
+        if: >
+          github.event_name == 'push' &&
+          (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+        run: |
+          set -euo pipefail
+          image="$(echo "ghcr.io/${GITHUB_REPOSITORY}/meeting-room" | tr '[:upper:]' '[:lower:]')"
+          echo "${{ github.token }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          docker tag vboard-meeting-room:ci "$image:${GITHUB_SHA}"
+          docker push "$image:${GITHUB_SHA}"
+          if [ "${GITHUB_REF}" = "refs/heads/main" ]; then
+            docker tag vboard-meeting-room:ci "$image:main"
+            docker push "$image:main"
+          fi
+          if echo "${GITHUB_REF}" | grep -q '^refs/tags/v'; then
+            docker tag vboard-meeting-room:ci "$image:${GITHUB_REF_NAME}"
+            docker push "$image:${GITHUB_REF_NAME}"
+          fi

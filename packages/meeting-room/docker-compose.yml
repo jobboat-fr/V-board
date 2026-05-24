@@ -1,0 +1,66 @@
+# ─────────────────────────────────────────────────────────────────
+# Meeting Room — standalone Docker Compose (single service)
+#
+# For the full V-Board stack (all five containers), use the root
+# docker-compose.yml instead.  This file is for running only the
+# meeting-room service in isolation (local dev or staging).
+#
+# Usage:
+#   cp .env.example .env && nano .env
+#   docker compose -f packages/meeting-room/docker-compose.yml up -d
+#
+# Security notes:
+#   - MEETING_ROOM_API_TOKEN is required in production.
+#   - Server binds to 127.0.0.1:8790 — put nginx in front for HTTPS.
+#   - See nginx.conf.example for a TLS termination template.
+# ─────────────────────────────────────────────────────────────────
+
+services:
+  meeting-room:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: vboard-meeting-room:latest
+    container_name: vboard-meeting-room
+    restart: unless-stopped
+
+    # Localhost-only bind — nginx handles external access.
+    ports:
+      - "127.0.0.1:8790:8790"
+
+    env_file:
+      - .env
+    environment:
+      AZZCO_DATA_ROOT: /workspace
+      MEETING_ROOM_REQUIRE_TOKEN: "true"
+
+    volumes:
+      - meeting_room_data:/workspace
+
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+    stop_grace_period: 30s
+
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8790/health', timeout=3).read()"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+volumes:
+  meeting_room_data:
+    driver: local
