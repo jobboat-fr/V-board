@@ -1,0 +1,12 @@
+{
+  "category": "cold_email_campaign",
+  "urgency": "P3",
+  "owner": true,
+  "temperature": 20,
+  "mail_label": "cold_mail",
+  "prompt": "Cold outreach with verified public website, no commitment.",
+  "lead": {
+    "email": "prospect@example.com",
+    "website": "https://example.com"
+  }
+}

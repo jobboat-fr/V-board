@@ -1,0 +1,8 @@
+node_modules/
+.env
+.env.*
+!.env.example
+.secrets/
+data/route_log.jsonl
+data/budget_state.json
+*.log

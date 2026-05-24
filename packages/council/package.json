@@ -1,0 +1,16 @@
+{
+  "name": "azzco-council-core",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Clean AZZCO adaptation of the BrandPublisher orchestration brain and LLM council pattern.",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node scripts/check_all.js",
+    "smoke": "node scripts/smoke_test.js",
+    "hardening": "node scripts/hardening_test.js",
+    "check": "node scripts/check_all.js",
+    "doctor": "node scripts/check_all.js"
+  },
+  "type": "commonjs"
+}

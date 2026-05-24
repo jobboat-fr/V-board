@@ -1,0 +1,10 @@
+services:
+  azzco-ops-core:
+    build: .
+    env_file:
+      - .env
+    ports:
+      - "127.0.0.1:8788:8788"
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped

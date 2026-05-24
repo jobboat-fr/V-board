@@ -1,0 +1,13 @@
+{
+  "category": "sales_reply",
+  "urgency": "P2",
+  "owner": true,
+  "temperature": 85,
+  "mail_label": "hot_mail",
+  "prompt": "Hot lead asks for pricing, proposal, demo, and signature this week.",
+  "requested_action": {
+    "channel": "email",
+    "action": "send_hot_email",
+    "to": "prospect@example.com"
+  }
+}

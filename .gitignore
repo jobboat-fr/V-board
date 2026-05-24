@@ -1,0 +1,48 @@
+# Dependencies
+node_modules/
+.venv/
+__pycache__/
+*.pyc
+
+# Secrets — NEVER commit these
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.secrets
+.secrets/
+api_keys.json
+*.pem
+*.key
+id_ed25519*
+id_rsa*
+
+# Live operational data — not for repo
+data/route_log.jsonl
+data/budget_state.json
+ops/context/
+ops/runner/
+reports/
+logs/
+*.log
+
+# Build outputs
+dist/
+build/
+*.tar.gz
+*.zip
+
+# Editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Test artifacts
+coverage/
+.nyc_output/
+
+# Temp files from server
+tmp-server-out.log
+tmp-server-err.log

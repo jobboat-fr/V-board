@@ -1,0 +1,11 @@
+# Normalize line endings to LF in repo, regardless of OS
+* text=auto eol=lf
+*.sh text eol=lf
+*.js text eol=lf
+*.py text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.service text eol=lf
+Makefile text eol=lf
