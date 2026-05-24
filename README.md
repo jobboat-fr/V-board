@@ -85,20 +85,101 @@ docker compose --profile ollama up -d
 ## Architecture
 
 ```mermaid
-flowchart LR
-  A[Inbound work] --> B[Front desk / runner]
-  B --> C[Ops-core route gate]
-  C -->|runner_local| D[Runner handles]
-  C -->|needs evidence| E[Collect or ask human]
-  C -->|council_required| F[Specialist council]
-  F --> G[Decision and allowed actions]
-  G --> B
-  B --> H[External message or internal report]
-  C --> I[Evidence store]
-  F --> I
-  B --> I
-  J[Meeting room] --> C
-  J --> I
+flowchart TD
+    subgraph IN[Inputs]
+        A1[Email / API request]
+        A2[WhatsApp / chat]
+        A3[Meeting transcript or audio]
+        A4[Finance / bank event]
+    end
+
+    subgraph FD[Front Desk and Runner]
+        B[Route or Bridge]
+        B2[Cron jobs / scheduled tasks]
+    end
+
+    subgraph OC[Ops-Core 8-Step Pipeline]
+        C1["1. TaskRouter.classify\nKeyword ladder, zero LLM cost\nCategory, urgency P0-P3, restricted flag"]
+        C2["2. CostGuard.evaluate\nDaily and monthly budget check\nnormal / force_cheap / hard_stop"]
+        C3["3. buildWorkflow\nProspect Score D_fast formula\nMail policy, lead signals"]
+        C4["4. Kitchen Workers parallel\nMail classifier\nhot / warm / cold / spam"]
+        C5["5. Deal Room 0-100\nScore 82 activates deal captain\nScore 92 owner-pass"]
+        C6["6. Safety Gates x10\nAny gate blocks send and CRM\nOwner notify forced"]
+        C7["7. Work Order L1-L4\nDraft / Auto-send / Owner Gate / Hard Block"]
+        C8["8. CouncilRuntime\nExecutiveJudge decision tree\nEvidence written"]
+        C1 --> C2 --> C3 --> C4 --> C5 --> C6 --> C7 --> C8
+    end
+
+    subgraph CL[AI Council 5-Stage]
+        D1["Primary model\nRole-specialist answer\nWeight 1.5"]
+        D2A["Reviewer 1\nIndependent scoring 0-100\nWeight 1.3"]
+        D2B["Reviewer 2\nIndependent scoring 0-100\nWeight 1.2"]
+        D3{"Weighted consensus\nagreement >= 0.66?"}
+        D4["Chairman synthesis\nOnly if consensus fails\nWeight 2.0"]
+        D5["Behavioral overlay\n6 keyword pattern scan\nNo LLM call"]
+        D1 --> D2A
+        D1 --> D2B
+        D2A --> D3
+        D2B --> D3
+        D3 -->|pass| D5
+        D3 -->|fail| D4
+        D4 --> D5
+    end
+
+    subgraph MR[Meeting Room]
+        M1[Transcript or STT input]
+        M2{"Guard 1\nTranscript empty?"}
+        M3{"Guard 2\nAI spoke in last 3 turns?"}
+        M4{"Guard 3\nAny advisor signal?"}
+        M5["Advisor fan-out parallel\nCFO, CTO, COO\nCRM, Legal, Product"]
+        M6["Judge LLM\nspeak / urgency / message"]
+        M7{"Urgency high?"}
+        M8["Host approval gate\nPause for human"]
+        M9[Intervention written to transcript]
+        M1 --> M2
+        M2 -->|empty| SK1([skip, no cost])
+        M2 -->|ok| M3
+        M3 -->|spoke| SK2([skip, no cost])
+        M3 -->|ok| M4
+        M4 -->|no signal| SK3([skip, tokens saved])
+        M4 -->|signal| M5
+        M5 --> M6
+        M6 --> M7
+        M7 -->|normal or low| M9
+        M7 -->|high| M8
+        M8 --> M9
+    end
+
+    subgraph EV[Evidence Store]
+        I1[(Work orders\nstatus, owner, dept)]
+        I2[(Route decisions\nEMP and EST tagged facts)]
+        I3[(Meeting transcripts\ncommitments, escalations)]
+        I4[(Cost and budget log)]
+    end
+
+    subgraph ACT[Allowed Actions - Runner executes]
+        H1[Email send or draft]
+        H2[Owner WhatsApp notify]
+        H3[CRM update]
+        H4[Internal report]
+    end
+
+    A1 --> B
+    A2 --> B
+    A4 --> B
+    B2 --> OC
+    A3 --> M1
+    B --> OC
+    OC --> CL
+    CL -->|council output| OC
+    OC -->|runner_local| ACT
+    OC -->|needs evidence| EV1[Collect or ask human]
+    EV1 -->|evidence ready| OC
+    MR --> OC
+    OC --> EV
+    CL --> EV
+    MR --> EV
+    ACT --> EV
 ```
 
 ## Algorithms
