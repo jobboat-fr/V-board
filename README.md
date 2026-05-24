@@ -85,101 +85,90 @@ docker compose --profile ollama up -d
 ## Architecture
 
 ```mermaid
-flowchart TD
-    subgraph IN[Inputs]
-        A1[Email / API request]
-        A2[WhatsApp / chat]
-        A3[Meeting transcript or audio]
-        A4[Finance / bank event]
+flowchart LR
+    classDef det  fill:#f0fdf4,stroke:#16a34a,color:#166534
+    classDef llm  fill:#eff6ff,stroke:#3b82f6,color:#1e40af
+    classDef gate fill:#fff7ed,stroke:#f97316,color:#9a3412
+    classDef ev   fill:#f9fafb,stroke:#6b7280,color:#374151
+    classDef io   fill:#faf5ff,stroke:#9333ea,color:#581c87
+
+    %% ── Inputs ──────────────────────────────────────────────
+    EMAIL([Email / API]):::io
+    CHAT([WhatsApp / chat]):::io
+    AUDIO([Meeting audio / STT]):::io
+    BANK([Finance / bank]):::io
+
+    %% ── Ops-Core pipeline ───────────────────────────────────
+    subgraph PIPE["  Ops-Core  ·  8-Step Pipeline  "]
+        direction LR
+        P1["① Classify\nkeyword · P0-P3"]:::det
+        P2["② Cost Guard\nnormal/cheap/stop"]:::det
+        P3["③ Workflow\nD_fast score"]:::det
+        P4["④ Mail Label\nhot/warm/cold/spam"]:::llm
+        P5["⑤ Deal Room\nscore 0–100"]:::det
+        P6["⑥ Safety Gates\n× 10 enforced"]:::gate
+        P7["⑦ Work Order\nL1 Draft→L4 Block"]:::det
+        P8["⑧ Council Run\nJudge + evidence"]:::llm
+        P1-->P2-->P3-->P4-->P5-->P6-->P7-->P8
     end
 
-    subgraph FD[Front Desk and Runner]
-        B[Route or Bridge]
-        B2[Cron jobs / scheduled tasks]
+    %% ── AI Council ──────────────────────────────────────────
+    subgraph COUNCIL["  AI Council  ·  5-Stage  "]
+        direction TB
+        CP["Primary  w=1.5"]:::llm
+        CR1["Reviewer 1  w=1.3"]:::llm
+        CR2["Reviewer 2  w=1.2"]:::llm
+        CV{"agree ≥ 0.66 ?"}
+        CC["Chairman  w=2.0"]:::llm
+        CB["Behavioral scan\n6 patterns · no LLM"]:::det
+        CP --> CR1 & CR2 --> CV
+        CV -->|yes| CB
+        CV -->|no | CC --> CB
     end
 
-    subgraph OC[Ops-Core 8-Step Pipeline]
-        C1["1. TaskRouter.classify\nKeyword ladder, zero LLM cost\nCategory, urgency P0-P3, restricted flag"]
-        C2["2. CostGuard.evaluate\nDaily and monthly budget check\nnormal / force_cheap / hard_stop"]
-        C3["3. buildWorkflow\nProspect Score D_fast formula\nMail policy, lead signals"]
-        C4["4. Kitchen Workers parallel\nMail classifier\nhot / warm / cold / spam"]
-        C5["5. Deal Room 0-100\nScore 82 activates deal captain\nScore 92 owner-pass"]
-        C6["6. Safety Gates x10\nAny gate blocks send and CRM\nOwner notify forced"]
-        C7["7. Work Order L1-L4\nDraft / Auto-send / Owner Gate / Hard Block"]
-        C8["8. CouncilRuntime\nExecutiveJudge decision tree\nEvidence written"]
-        C1 --> C2 --> C3 --> C4 --> C5 --> C6 --> C7 --> C8
+    %% ── Meeting Room ────────────────────────────────────────
+    subgraph MEET["  Meeting Room  "]
+        direction TB
+        MG1{"empty ?"}:::gate
+        MG2{"AI spoke\nrecently ?"}:::gate
+        MG3{"advisor\nsignal ?"}:::gate
+        FANS["CFO · CTO · COO\nCRM · Legal · Product"]:::llm
+        MJ["Judge LLM\nspeak + message"]:::llm
+        RISK{"high risk ?"}:::gate
+        APPR["Host approval"]:::gate
+        MINT["Intervention written"]
+        MG1 -->|ok| MG2 -->|ok| MG3 -->|signal| FANS --> MJ --> RISK
+        MG1 & MG2 & MG3 -->|skip| DONE(( ))
+        RISK -->|normal| MINT
+        RISK -->|high  | APPR --> MINT
     end
 
-    subgraph CL[AI Council 5-Stage]
-        D1["Primary model\nRole-specialist answer\nWeight 1.5"]
-        D2A["Reviewer 1\nIndependent scoring 0-100\nWeight 1.3"]
-        D2B["Reviewer 2\nIndependent scoring 0-100\nWeight 1.2"]
-        D3{"Weighted consensus\nagreement >= 0.66?"}
-        D4["Chairman synthesis\nOnly if consensus fails\nWeight 2.0"]
-        D5["Behavioral overlay\n6 keyword pattern scan\nNo LLM call"]
-        D1 --> D2A
-        D1 --> D2B
-        D2A --> D3
-        D2B --> D3
-        D3 -->|pass| D5
-        D3 -->|fail| D4
-        D4 --> D5
+    %% ── Outputs ─────────────────────────────────────────────
+    HUMAN(["Ask human /\ncollect evidence"]):::gate
+    subgraph OUT["  Allowed Actions  "]
+        direction TB
+        AE[Email]:::det
+        AW[WhatsApp notify]:::det
+        AC[CRM update]:::det
+        AR[Internal report]:::det
+    end
+    subgraph EV["  Evidence Store  "]
+        direction TB
+        EV1[(Work orders)]:::ev
+        EV2[(Route decisions\nEMP · EST tags)]:::ev
+        EV3[(Meeting logs)]:::ev
+        EV4[(Cost log)]:::ev
     end
 
-    subgraph MR[Meeting Room]
-        M1[Transcript or STT input]
-        M2{"Guard 1\nTranscript empty?"}
-        M3{"Guard 2\nAI spoke in last 3 turns?"}
-        M4{"Guard 3\nAny advisor signal?"}
-        M5["Advisor fan-out parallel\nCFO, CTO, COO\nCRM, Legal, Product"]
-        M6["Judge LLM\nspeak / urgency / message"]
-        M7{"Urgency high?"}
-        M8["Host approval gate\nPause for human"]
-        M9[Intervention written to transcript]
-        M1 --> M2
-        M2 -->|empty| SK1([skip, no cost])
-        M2 -->|ok| M3
-        M3 -->|spoke| SK2([skip, no cost])
-        M3 -->|ok| M4
-        M4 -->|no signal| SK3([skip, tokens saved])
-        M4 -->|signal| M5
-        M5 --> M6
-        M6 --> M7
-        M7 -->|normal or low| M9
-        M7 -->|high| M8
-        M8 --> M9
-    end
-
-    subgraph EV[Evidence Store]
-        I1[(Work orders\nstatus, owner, dept)]
-        I2[(Route decisions\nEMP and EST tagged facts)]
-        I3[(Meeting transcripts\ncommitments, escalations)]
-        I4[(Cost and budget log)]
-    end
-
-    subgraph ACT[Allowed Actions - Runner executes]
-        H1[Email send or draft]
-        H2[Owner WhatsApp notify]
-        H3[CRM update]
-        H4[Internal report]
-    end
-
-    A1 --> B
-    A2 --> B
-    A4 --> B
-    B2 --> OC
-    A3 --> M1
-    B --> OC
-    OC --> CL
-    CL -->|council output| OC
-    OC -->|runner_local| ACT
-    OC -->|needs evidence| EV1[Collect or ask human]
-    EV1 -->|evidence ready| OC
-    MR --> OC
-    OC --> EV
-    CL --> EV
-    MR --> EV
-    ACT --> EV
+    %% ── Main flow ───────────────────────────────────────────
+    EMAIL & CHAT & BANK --> PIPE
+    AUDIO --> MG1
+    PIPE --> COUNCIL
+    COUNCIL -->|output| PIPE
+    PIPE -->|local route| OUT
+    PIPE -->|needs evidence| HUMAN -->|ready| PIPE
+    MEET --> PIPE
+    PIPE & COUNCIL & MEET & OUT --> EV
 ```
 
 ## Algorithms
