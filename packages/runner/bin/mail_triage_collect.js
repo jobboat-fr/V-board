@@ -6,8 +6,9 @@ const fs = require("fs");
 const path = require("path");
 
 const LIMIT = Number(process.env.MAIL_TRIAGE_LIMIT || 20);
-const COUNCIL = "/data/.openclaw/workspace/bin/azzco_council_call.sh";
-const OUT_DIR = "/data/.openclaw/workspace/mail/triage";
+const WORKSPACE = process.env.AZZCO_WORKSPACE || "/workspace";
+const COUNCIL = process.env.AZZCO_COUNCIL_SCRIPT || `${WORKSPACE}/bin/azzco_council_call.sh`;
+const OUT_DIR = `${WORKSPACE}/mail/triage`;
 const SNAPSHOT = path.join(OUT_DIR, "latest_inbox_snapshot.json");
 const COMMAND_TIMEOUT_MS = Number(process.env.MAIL_COMMAND_TIMEOUT_MS || 20000);
 

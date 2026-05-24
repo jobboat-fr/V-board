@@ -1,10 +1,10 @@
 # Architecture
 
-AZZCO Ops Core productizes the two-server operating model.
+AZZCO Ops Core productizes the container-native operating model.
 
 ## Roles
 
-Hostinger:
+Runner:
 
 - front desk
 - WhatsApp/Telegram/email communicator
@@ -13,7 +13,7 @@ Hostinger:
 - low-temperature operator
 - sender/executor of explicitly allowed actions
 
-OVH:
+Council:
 
 - high-temperature analysis
 - legal/accounting/fiscal review
@@ -21,11 +21,11 @@ OVH:
 - deal desk and quality hardening
 - prepares decisions only
 
-OVH never sends external email, WhatsApp, Telegram, or writes CRM directly.
+Council never sends external email, WhatsApp, Telegram, or writes CRM directly.
 
 Finance/CFO stack:
 
-- Hostinger collects bank, invoice, receipt, and email evidence.
+- Runner collects bank, invoice, receipt, and email evidence.
 - The normalized context lives under `AZZCO_DATA_ROOT/ops/context`.
 - The CFO stack builds reports and ledgers only from validated context.
 - If validation fails, it writes a blocked report and stops; it does not invent balances.
@@ -35,13 +35,13 @@ Finance/CFO stack:
 
 ```mermaid
 flowchart LR
-  A["Inbound message/email/cron"] --> B["Hostinger compact evidence"]
+  A["Inbound message/email/cron"] --> B["Runner compact evidence"]
   B --> C["Route policy"]
-  C -->|hostinger_local| D["Hostinger executes"]
-  C -->|hostinger_review_first| E["Ask owner / collect evidence"]
-  C -->|ovh_required| F["OVH council"]
+  C -->|runner_local| D["Runner executes"]
+  C -->|runner_review_first| E["Ask owner / collect evidence"]
+  C -->|council_required| F["Council analysis"]
   F --> G["Decision + allowed actions"]
-  G --> H["Hostinger executes allowed actions"]
+  G --> H["Runner executes allowed actions"]
 ```
 
 ## Core Contracts
@@ -49,5 +49,5 @@ flowchart LR
 - All routing goes through `classify()`.
 - All bridge calls pass compact evidence.
 - All write access is scoped to `AZZCO_DATA_ROOT`.
-- Hot, legal, accounting, fiscal, security, incident, or commitment-risk tasks require owner approval or OVH preparation.
-- Hostinger owns final delivery.
+- Hot, legal, accounting, fiscal, security, incident, or commitment-risk tasks require owner approval or council preparation.
+- Runner owns final delivery.

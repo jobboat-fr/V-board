@@ -79,7 +79,7 @@ function writeJson(file, value) {
 // ─── route policy ────────────────────────────────────────────────────────────
 
 function testRoutePolicy() {
-  // Cold public campaign → hostinger local
+  // Cold public campaign → runner local
   assert.strictEqual(classify({
     category: "cold_email_campaign",
     urgency: "P3",
@@ -88,9 +88,9 @@ function testRoutePolicy() {
     owner: true,
     lead: { email: "test@example.com", website: "https://example.com" },
     prompt: "Cold public website, no commitment"
-  }).route, "hostinger_local", "cold campaign should be hostinger_local");
+  }).route, "runner_local", "cold campaign should be runner_local");
 
-  // Hot sales reply → ovh_required
+  // Hot sales reply → council_required
   assert.strictEqual(classify({
     category: "sales_reply",
     urgency: "P2",
@@ -98,35 +98,35 @@ function testRoutePolicy() {
     mail_label: "hot_mail",
     owner: true,
     prompt: "Hot lead asks for pricing, proposal and signature."
-  }).route, "ovh_required", "hot sales reply should be ovh_required");
+  }).route, "council_required", "hot sales reply should be council_required");
 
-  // CRM pipeline low temp → hostinger_local
+  // CRM pipeline low temp → runner_local
   assert.strictEqual(classify({
     category: "crm_pipeline",
     urgency: "P3",
     temperature: 20,
     owner: true,
     prompt: "Add CRM note, no proposal, no commitment."
-  }).route, "hostinger_local", "CRM note should be hostinger_local");
+  }).route, "runner_local", "CRM note should be runner_local");
 
-  // Legal/accounting → ovh_required
+  // Legal/accounting → council_required
   assert.strictEqual(classify({
     category: "legal_accounting",
     urgency: "P1",
     prompt: "Check Qonto bank invoices"
-  }).route, "ovh_required", "legal_accounting should be ovh_required");
+  }).route, "council_required", "legal_accounting should be council_required");
 
-  // Incident watchdog → ovh_required
+  // Incident watchdog → council_required
   assert.strictEqual(classify({
     prompt: "p0 server down active attack"
-  }).route, "ovh_required", "incident should be ovh_required");
+  }).route, "council_required", "incident should be council_required");
 
-  // Restricted data → ovh_required regardless of temperature
+  // Restricted data → council_required regardless of temperature
   assert.strictEqual(classify({
     urgency: "P3",
     temperature: 10,
     prompt: "Check tax urssaf dsn filing"
-  }).route, "ovh_required", "restricted term should force ovh_required");
+  }).route, "council_required", "restricted term should force council_required");
 
   // Cold email missing evidence → review first
   assert.strictEqual(classify({
@@ -136,14 +136,14 @@ function testRoutePolicy() {
     mail_label: "cold_mail",
     owner: true,
     prompt: "Cold campaign with no lead info"
-  }).route, "hostinger_review_first", "cold campaign without evidence should be review_first");
+  }).route, "runner_review_first", "cold campaign without evidence should be review_first");
 
   // Email with invoice content → should NOT be mail_labeling, should be invoice_reconciliation
   const emailWithInvoice = classify({
     email: { from: "client@example.com", subject: "invoice question", body: "need invoice receipt bank transaction" }
   });
   assert.strictEqual(emailWithInvoice.category, "invoice_reconciliation", "email about invoice should be invoice_reconciliation, not mail_labeling");
-  assert.strictEqual(emailWithInvoice.route, "ovh_required", "invoice reconciliation should go to ovh");
+  assert.strictEqual(emailWithInvoice.route, "council_required", "invoice reconciliation should go to council");
 
   // P0 incident in email body → should not be swallowed by mail_labeling fallback
   const incidentEmail = classify({
@@ -152,9 +152,9 @@ function testRoutePolicy() {
   assert.strictEqual(incidentEmail.category, "incident_watchdog", "P0 in email body must be incident_watchdog");
 }
 
-// ─── ovh_may_send invariant ──────────────────────────────────────────────────
+// ─── council_may_send invariant ─────────────────────────────────────────────
 
-function testOvhMaySendInvariant() {
+function testCouncilMaySendInvariant() {
   const fixtures = [
     { prompt: "simple chat hello" },
     { category: "sales_reply", urgency: "P2", temperature: 85, mail_label: "hot_mail", prompt: "pricing and signature" },
@@ -170,12 +170,12 @@ function testOvhMaySendInvariant() {
 
   for (const fixture of fixtures) {
     const result = classify(fixture);
-    assert.strictEqual(result.policy.ovh_may_send, false,
-      `ovh_may_send must ALWAYS be false — failed for: ${JSON.stringify(fixture)}`);
-    assert.strictEqual(result.policy.ovh_prepares_only, true,
-      `ovh_prepares_only must ALWAYS be true — failed for: ${JSON.stringify(fixture)}`);
-    assert.strictEqual(result.execution.email_sender, "hostinger",
-      `email_sender must always be hostinger — failed for: ${JSON.stringify(fixture)}`);
+    assert.strictEqual(result.policy.council_may_send, false,
+      `council_may_send must ALWAYS be false — failed for: ${JSON.stringify(fixture)}`);
+    assert.strictEqual(result.policy.council_prepares_only, true,
+      `council_prepares_only must ALWAYS be true — failed for: ${JSON.stringify(fixture)}`);
+    assert.strictEqual(result.execution.email_sender, "runner",
+      `email_sender must always be runner — failed for: ${JSON.stringify(fixture)}`);
   }
 }
 
@@ -225,14 +225,14 @@ async function testHttpApi() {
     const unauth = await request(port, "GET", "/v1/work-orders", null, "wrong-token");
     assert.strictEqual(unauth.status, 401);
 
-    // Route — legal should go to ovh
+    // Route — legal should go to council
     const route = await request(port, "POST", "/v1/route", {
       category: "legal_accounting",
       urgency: "P1",
       prompt: "Check Qonto bank invoices"
     }, crmKey.token);
     assert.strictEqual(route.status, 200);
-    assert.strictEqual(route.body.route, "ovh_required");
+    assert.strictEqual(route.body.route, "council_required");
 
     const dispatch = await request(port, "POST", "/v1/departments/dispatch", {
       department: "crm",
@@ -328,12 +328,12 @@ async function testMcp() {
     assert.ok(toolNames.includes(name), `tools/list must include ${name}`);
   }
 
-  // azzco_route — simple chat should be hostinger_local
+  // azzco_route — simple chat should be runner_local
   const route = await handleRequest({
     jsonrpc: "2.0", id: 2, method: "tools/call",
     params: { name: "azzco_route", arguments: { category: "simple_chat", urgency: "P3", prompt: "hello" } }
   }, config);
-  assert.ok(route.result.content[0].text.includes("hostinger_local"));
+  assert.ok(route.result.content[0].text.includes("runner_local"));
 
   // azzco_health
   const healthResp = await handleRequest({
@@ -344,14 +344,14 @@ async function testMcp() {
   assert.strictEqual(health.ok, true);
   assert.strictEqual(health.service, "azzco-ops-core");
 
-  // azzco_policy — must assert ovh_may_send: false invariant
+  // azzco_policy — must assert council_may_send: false invariant
   const policyResp = await handleRequest({
     jsonrpc: "2.0", id: 4, method: "tools/call",
     params: { name: "azzco_policy", arguments: {} }
   }, config);
   const policy = JSON.parse(policyResp.result.content[0].text);
-  assert.strictEqual(policy.invariants.ovh_may_send, false);
-  assert.strictEqual(policy.invariants.ovh_prepares_only, true);
+  assert.strictEqual(policy.invariants.council_may_send, false);
+  assert.strictEqual(policy.invariants.council_prepares_only, true);
 
   const financeStatusResp = await handleRequest({
     jsonrpc: "2.0", id: 41, method: "tools/call",
@@ -596,7 +596,7 @@ async function testQontoFullPullFeedsCfoStack() {
 
 async function main() {
   testRoutePolicy();
-  testOvhMaySendInvariant();
+  testCouncilMaySendInvariant();
   testCompactEvidence();
   testWorkOrderStore();
   await testHttpApi();

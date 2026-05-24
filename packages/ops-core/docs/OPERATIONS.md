@@ -1,31 +1,31 @@
 # Operations
 
-## Hostinger Mode
+## Container Mode (Docker Compose)
 
-Hostinger should run the API/MCP gateway with:
+The ops-core container runs the API/MCP gateway with:
 
 ```bash
-AZZCO_DATA_ROOT=/data/.openclaw/workspace
-AZZCO_API_HOST=127.0.0.1
+AZZCO_DATA_ROOT=/workspace
+AZZCO_API_HOST=0.0.0.0
 AZZCO_API_PORT=8788
-AZZCO_COUNCIL_URL=http://YOUR_OVH_SERVER:8787/route
-AZZCO_API_KEYS_FILE=/data/.openclaw/workspace/azzco-ops-core/.secrets/api_keys.json
+AZZCO_COUNCIL_URL=http://council:8787/route
+AZZCO_API_KEYS_FILE=/workspace/.secrets/api_keys.json
 ```
 
-Hostinger is allowed to send and write CRM only after policy approval.
+Runner (ops-core + runner containers) is allowed to send and write CRM only after policy approval.
 
-## OVH Mode
+## Council Container
 
-OVH can run the same core for local work-order storage and MCP read/write, but it remains prepare-only for business communications.
+Council runs the same core for local work-order storage and MCP read/write, but remains prepare-only for business communications.
 
-OVH should use its own scoped key registry:
+Council uses its own scoped key registry:
 
 ```bash
-AZZCO_DATA_ROOT=/home/ubuntu/.openclaw/workspace
-AZZCO_API_HOST=127.0.0.1
-AZZCO_API_PORT=8788
+AZZCO_DATA_ROOT=/workspace
+AZZCO_API_HOST=0.0.0.0
+AZZCO_API_PORT=8787
 AZZCO_COUNCIL_URL=http://127.0.0.1:8787/route
-AZZCO_API_KEYS_FILE=/home/ubuntu/.openclaw/workspace/azzco-ops-core/.secrets/api_keys.json
+AZZCO_API_KEYS_FILE=/workspace/.secrets/api_keys.json
 ```
 
 Generate one key per external integration. Never reuse the owner/root key for regular applications.
@@ -44,7 +44,7 @@ P0:
 - exposed secret
 - active attack
 - runaway spend
-- broken Hostinger/OVH bridge
+- broken runner/council bridge
 - data corruption
 
 For P0, notify owner immediately through available channels and create a work order.

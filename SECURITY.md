@@ -19,11 +19,11 @@ We will respond within 48 hours and aim to patch within 7 days for critical issu
 
 ### What Is Hardened
 
-- **Council port `8787`** — binds to `127.0.0.1` by default. UFW rule allows only the Hostinger server IP + localhost. Publicly unreachable.
-- **Ops-core port `8788`** — binds to `127.0.0.1` always. Not reachable from the internet.
+- **Council port `8787`** — not exposed to the host in Docker Compose. Internal `azzco-net` only. Publicly unreachable.
+- **Ops-core port `8788`** — binds to `127.0.0.1` by default. Not reachable from the internet without explicit config.
 - **All API endpoints** require scoped bearer tokens (see `packages/ops-core/src/server/auth.js`).
 - **Path traversal** — `safeFs.js` uses `path.resolve` + boundary check, returns 403 on escape attempt. Tested in CI.
-- **`ovh_may_send: false`** — enforced in code and verified in every CI run. OVH never sends externally.
+- **`council_may_send: false`** — enforced in code and verified in every CI run. council never sends externally.
 - **Dedup cache** — prevents replay attacks from burning budget via repeated calls.
 - **No secrets in repo** — CI secret-scan job blocks merges if patterns are detected.
 
@@ -41,6 +41,6 @@ Every PR must pass:
 1. No hardcoded phone numbers in code
 2. No private server IPs in code  
 3. No committed secrets in `.env` files
-4. `ovh_may_send` invariant holds in all source files
+4. `council_may_send` invariant holds in all source files
 5. Full ops-core test suite (including path traversal fixture)
 6. Council hardening test

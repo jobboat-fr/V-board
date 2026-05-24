@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 "use strict";
-const { buildCfoStack, financeStatus } = require("/data/.openclaw/workspace/bin/azzco_cfo_stack.js");
-const DATA_ROOT = process.env.AZZCO_DATA_ROOT || "/data/.openclaw/workspace";
+const WORKSPACE = process.env.AZZCO_WORKSPACE || "/workspace";
+const { buildCfoStack, financeStatus } = require(require("path").join(WORKSPACE, "bin/azzco_cfo_stack.js"));
+const DATA_ROOT = process.env.AZZCO_DATA_ROOT || WORKSPACE;
 const command = process.argv[2] || "build";
 if (command === "build") {
   const result = buildCfoStack(DATA_ROOT);

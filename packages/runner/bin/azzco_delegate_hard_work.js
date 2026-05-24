@@ -5,47 +5,47 @@ const fs = require("fs");
 const path = require("path");
 const { spawnSync } = require("child_process");
 
-const ROOT = "/data/.openclaw/workspace";
+const ROOT = process.env.AZZCO_WORKSPACE || "/workspace";
 const category = process.argv[2] || "owner_decision_meeting";
 const urgency = process.argv[3] || "P2";
 const outDir = path.join(ROOT, "ops/context");
-const outPath = path.join(outDir, `ovh_last_${category}.json`);
+const outPath = path.join(outDir, `council_last_${category}.json`);
 
 const prompts = {
   owner_decision_meeting:
-    "OVH back office: analyze the compact Hostinger evidence and prepare an owner-grade decision brief. Hostinger will deliver and execute; OVH prepares only.",
+    "council back office: analyze the compact runner evidence and prepare an owner-grade decision brief. runner will deliver and execute; council prepares only.",
   morning_brief:
-    "OVH hard-work office: synthesize an owner-grade morning brief from Hostinger collector evidence. Identify failures, blocked reports, CRM/mail status, and exact owner actions. Hostinger will deliver; OVH prepares only.",
+    "council hard-work office: synthesize an owner-grade morning brief from runner collector evidence. Identify failures, blocked reports, CRM/mail status, and exact owner actions. runner will deliver; council prepares only.",
   incident_watchdog:
-    "OVH incident office: analyze Hostinger collector evidence for cron failures, incomplete outputs, channel failures, bridge failures, cost/security/platform risks. Return P0/P1/P2 labels and next safe actions. Hostinger will deliver; OVH prepares only.",
+    "council incident office: analyze runner collector evidence for cron failures, incomplete outputs, channel failures, bridge failures, cost/security/platform risks. Return P0/P1/P2 labels and next safe actions. runner will deliver; council prepares only.",
   cto_audit:
-    "OVH CTO office: analyze platform/MCP/infra evidence. Do not invent Railway/Vercel health if evidence is absent. Return blocked checks explicitly. Hostinger will deliver; OVH prepares only.",
+    "council CTO office: analyze platform/MCP/infra evidence. Do not invent Railway/Vercel health if evidence is absent. Return blocked checks explicitly. runner will deliver; council prepares only.",
   lead_scout:
-    "OVH CRM/Sales office: analyze lead scout evidence, score prospects, reject weak evidence, prepare cold/hot labels and owner approval needs. Hostinger writes CRM/sends emails only after policy.",
+    "council CRM/Sales office: analyze lead scout evidence, score prospects, reject weak evidence, prepare cold/hot labels and owner approval needs. runner writes CRM/sends emails only after policy.",
   crm_pipeline:
-    "OVH CRM office: analyze pipeline evidence, stages, hot/warm lead risk, and next actions. Hostinger writes CRM and sends communications.",
+    "council CRM office: analyze pipeline evidence, stages, hot/warm lead risk, and next actions. runner writes CRM and sends communications.",
   mail_triage:
-    "OVH quality office: analyze mail triage evidence, label hot/warm/cold/admin/finance/legal/security, decide approval gates, and prepare safe reply recommendations. Hostinger sends only allowed actions.",
+    "council quality office: analyze mail triage evidence, label hot/warm/cold/admin/finance/legal/security, decide approval gates, and prepare safe reply recommendations. runner sends only allowed actions.",
   legal_accounting:
-    "OVH legal/accounting office: analyze owner-only evidence for fiscal/legal/accounting risks. Do not file/pay/sign. Hostinger reports to owner only.",
+    "council legal/accounting office: analyze owner-only evidence for fiscal/legal/accounting risks. Do not file/pay/sign. runner reports to owner only.",
   legal_finance_sentinel:
-    "OVH legal/accounting sentinel: inspect compact evidence for P0/P1 fiscal, legal, document, invoice, bank, and social risks. Do not file/pay/sign. Hostinger reports to owner only.",
+    "council legal/accounting sentinel: inspect compact evidence for P0/P1 fiscal, legal, document, invoice, bank, and social risks. Do not file/pay/sign. runner reports to owner only.",
   invoice_reconciliation:
-    "OVH finance office: analyze invoice/receipt/bank matching evidence and missing proof. Hostinger stores/transfers files and reports to owner.",
+    "council finance office: analyze invoice/receipt/bank matching evidence and missing proof. runner stores/transfers files and reports to owner.",
   deal_desk:
-    "OVH deal desk: evaluate warm/hot opportunities, objections, risk, confidence threshold, and exact next-best-action. Hostinger sends only approved communication.",
+    "council deal desk: evaluate warm/hot opportunities, objections, risk, confidence threshold, and exact next-best-action. runner sends only approved communication.",
   approval_queue:
-    "OVH quality office: review pending approvals, blocked sends, hot/warm replies, and risk gates. Hostinger executes only owner-approved actions.",
+    "council quality office: review pending approvals, blocked sends, hot/warm replies, and risk gates. runner executes only owner-approved actions.",
   document_vault:
-    "OVH records office: audit document indexing and missing legal/accounting proof. Hostinger stores/transfers files and reports owner-only.",
+    "council records office: audit document indexing and missing legal/accounting proof. runner stores/transfers files and reports owner-only.",
   deep_legal_scan:
-    "OVH legal office: perform deep owner-only legal scan from indexed evidence, list risks, missing documents, validation needs, and blocked items. Do not file/sign/commit.",
+    "council legal office: perform deep owner-only legal scan from indexed evidence, list risks, missing documents, validation needs, and blocked items. Do not file/sign/commit.",
   deep_accounting_scan:
-    "OVH finance office: perform deep owner-only accounting scan from indexed evidence, list bank/invoice/receipt gaps and accountant-ready actions. Do not file/pay/commit.",
+    "council finance office: perform deep owner-only accounting scan from indexed evidence, list bank/invoice/receipt gaps and accountant-ready actions. Do not file/pay/commit.",
   deep_risk_synthesis:
-    "OVH risk office: synthesize legal, accounting, CRM, infra, cost, and security risks into owner-only priorities. Hostinger reports only.",
+    "council risk office: synthesize legal, accounting, CRM, infra, cost, and security risks into owner-only priorities. runner reports only.",
   weekly_board_brief:
-    "OVH chief-of-staff office: synthesize a weekly owner board brief from compact evidence. Hostinger delivers; OVH prepares only."
+    "council chief-of-staff office: synthesize a weekly owner board brief from compact evidence. runner delivers; council prepares only."
 };
 
 function run(command, args, input, timeoutMs) {
@@ -81,7 +81,7 @@ function writeJsonAtomic(file, value) {
 
 fs.mkdirSync(outDir, { recursive: true });
 
-const collect = run("/data/.openclaw/workspace/bin/azzco_morning_collect.sh", [], "", 120000);
+const collect = run(path.join(ROOT, "bin/azzco_morning_collect.sh"), [], "", 120000);
 const ops = readJson(path.join(outDir, "latest_ops_status.json"), {
   ok: false,
   error: "latest_ops_status_missing"
@@ -135,19 +135,18 @@ const compactEvidence = {
   },
   rules: ops.rules || {},
   note:
-    "Hostinger collected this compact packet. OVH must analyze. Hostinger delivers and executes allowed actions only."
+    "runner collected this compact packet. council must analyze. runner delivers and executes allowed actions only."
 };
 
 function buildCategoryEvidence(base) {
   const items = [base];
-  const ROOT = "/data/.openclaw/workspace";
   const ctxDir = ROOT + "/ops/context";
   function safeJson(p, fb) { try { return JSON.parse(fs.readFileSync(p, "utf8")); } catch { return fb; } }
   function safeText(p) { try { return fs.readFileSync(p, "utf8").slice(0, 8000); } catch { return null; } }
   if (["mail_triage","morning_brief","approval_queue"].includes(category)) {
     const snap = safeJson(ROOT + "/mail/triage/latest_inbox_snapshot.json", null);
     if (snap && snap.ok && Array.isArray(snap.rows)) {
-      items.push({ source: "hostinger_mail_inbox_snapshot", snapshotOk: snap.ok,
+      items.push({ source: "runner_mail_inbox_snapshot", snapshotOk: snap.ok,
         checkedAt: snap.checkedAt, account: snap.account, inspected: snap.inspected,
         actionable: snap.actionable, policy: snap.policy,
         rows: snap.rows.slice(0, 20).map(function(r) {
@@ -202,7 +201,7 @@ const packet = {
   urgency,
   owner: true,
   force_ovh: true,
-  source: "hostinger_frontdesk_delegate_script",
+  source: "runner_frontdesk_delegate_script",
   channel: "internal_bridge",
   requested_action: "analyze_prepare_only",
   evidence: buildCategoryEvidence(compactEvidence),
@@ -210,13 +209,13 @@ const packet = {
     hostinger_collects: true,
     hostinger_sends: true,
     hostinger_writes_crm: true,
-    ovh_analyzes: true,
-    ovh_sends: false,
-    ovh_writes_crm: false
+    council_analyzes: true,
+    council_sends: false,
+    council_writes_crm: false
   }
 };
 
-const bridge = run("node", ["/data/.openclaw/workspace/bin/azzco_route_or_bridge.js"], JSON.stringify(packet), 360000);
+const bridge = run("node", [path.join(ROOT, "bin/azzco_route_or_bridge.js")], JSON.stringify(packet), 360000);
 
 let parsed;
 try {

@@ -1,8 +1,8 @@
 # Invoice And Payment Follow-Up Protocol
 
 Scan:
-/data/.openclaw/workspace/accounting
-/data/.openclaw/workspace/finance
+$AZZCO_WORKSPACE/accounting
+$AZZCO_WORKSPACE/finance
 
 Detect:
 - unpaid invoices

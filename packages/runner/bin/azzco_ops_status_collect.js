@@ -5,7 +5,7 @@ const fs = require("fs");
 const path = require("path");
 const { spawnSync } = require("child_process");
 
-const ROOT = "/data/.openclaw/workspace";
+const ROOT = process.env.AZZCO_WORKSPACE || "/workspace";
 const RUNNER = path.join(ROOT, "ops/runner");
 
 function trim(value, max = 10000) {
@@ -144,7 +144,7 @@ console.log(JSON.stringify({
     openclaw_agent_crons_disabled_intentionally: true,
     do_not_use_jira_tasks_todo_as_schedule_truth: true,
     incomplete_outputs_are_failures: true,
-    ovh_prepares_hostinger_executes: true
+    council_prepares_runner_executes: true
   },
   runner: {
     scheduleText: readText(path.join(RUNNER, "azzco-openclaw-runner.cron"), 8000),

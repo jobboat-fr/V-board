@@ -1,7 +1,7 @@
 # Document Vault Index Protocol
 
 Maintain:
-/data/.openclaw/workspace/docs_index/document_vault_index.md
+$AZZCO_WORKSPACE/docs_index/document_vault_index.md
 
 Index every important document:
 - filename

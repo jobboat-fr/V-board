@@ -18,18 +18,18 @@ function readStdinJson() {
 }
 
 const DOCTOR_FIXTURES = [
-  // should be hostinger_local
-  { name: "cold_local", expect: "hostinger_local", payload: { category: "cold_email_campaign", urgency: "P3", temperature: 20, mail_label: "cold_mail", owner: true, lead: { email: "test@example.com", website: "https://example.com" }, prompt: "Cold verified public source, no commitment." } },
-  { name: "crm_routine", expect: "hostinger_local", payload: { category: "crm_pipeline", urgency: "P3", temperature: 20, owner: true, prompt: "Add CRM note." } },
-  { name: "simple_chat_local", expect: "hostinger_local", payload: { category: "simple_chat", urgency: "P3", prompt: "hello" } },
-  // should be ovh_required
-  { name: "hot_sales_ovh", expect: "ovh_required", payload: { category: "sales_reply", urgency: "P2", temperature: 85, mail_label: "hot_mail", owner: true, prompt: "Hot lead asks for pricing and signature." } },
-  { name: "legal_ovh", expect: "ovh_required", payload: { category: "legal_accounting", urgency: "P1", prompt: "Check urssaf tax dsn filing." } },
-  { name: "incident_ovh", expect: "ovh_required", payload: { prompt: "p0 data leak breach server down active attack." } },
-  { name: "restricted_ovh", expect: "ovh_required", payload: { urgency: "P3", temperature: 10, prompt: "Review contract statuts kbis." } },
-  { name: "invoice_ovh", expect: "ovh_required", payload: { prompt: "invoice receipt bank transaction qonto." } },
+  // should be runner_local
+  { name: "cold_local", expect: "runner_local", payload: { category: "cold_email_campaign", urgency: "P3", temperature: 20, mail_label: "cold_mail", owner: true, lead: { email: "test@example.com", website: "https://example.com" }, prompt: "Cold verified public source, no commitment." } },
+  { name: "crm_routine", expect: "runner_local", payload: { category: "crm_pipeline", urgency: "P3", temperature: 20, owner: true, prompt: "Add CRM note." } },
+  { name: "simple_chat_local", expect: "runner_local", payload: { category: "simple_chat", urgency: "P3", prompt: "hello" } },
+  // should be council_required
+  { name: "hot_sales_council", expect: "council_required", payload: { category: "sales_reply", urgency: "P2", temperature: 85, mail_label: "hot_mail", owner: true, prompt: "Hot lead asks for pricing and signature." } },
+  { name: "legal_council", expect: "council_required", payload: { category: "legal_accounting", urgency: "P1", prompt: "Check urssaf tax dsn filing." } },
+  { name: "incident_council", expect: "council_required", payload: { prompt: "p0 data leak breach server down active attack." } },
+  { name: "restricted_council", expect: "council_required", payload: { urgency: "P3", temperature: 10, prompt: "Review contract statuts kbis." } },
+  { name: "invoice_council", expect: "council_required", payload: { prompt: "invoice receipt bank transaction qonto." } },
   // should be review first
-  { name: "cold_no_evidence", expect: "hostinger_review_first", payload: { category: "cold_email_campaign", urgency: "P3", temperature: 20, mail_label: "cold_mail", owner: true, prompt: "Cold campaign no lead data." } }
+  { name: "cold_no_evidence", expect: "runner_review_first", payload: { category: "cold_email_campaign", urgency: "P3", temperature: 20, mail_label: "cold_mail", owner: true, prompt: "Cold campaign no lead data." } }
 ];
 
 async function doctor(config) {
@@ -38,10 +38,10 @@ async function doctor(config) {
     return { name: test.name, ok: result.route === test.expect, expected: test.expect, got: result.route };
   });
 
-  // Invariant: ovh_may_send must always be false
+  // Invariant: council_may_send must always be false
   const invariantCases = DOCTOR_FIXTURES.map((test) => {
     const result = classify(test.payload);
-    return { name: `${test.name}_ovh_may_send`, ok: result.policy.ovh_may_send === false };
+    return { name: `${test.name}_council_may_send`, ok: result.policy.council_may_send === false };
   });
 
   // Infra guards
@@ -54,7 +54,7 @@ async function doctor(config) {
     guards.push({ name: "api_auth", ok: true, detail: apiAuthConfigured ? "configured" : "not set (dev mode)" });
   }
 
-  guards.push({ name: "council_token", ok: true, detail: config.council.token ? "configured" : "not set (ovh_required flows will return COUNCIL_TOKEN_MISSING)" });
+  guards.push({ name: "council_token", ok: true, detail: config.council.token ? "configured" : "not set (council_required flows will return COUNCIL_TOKEN_MISSING)" });
 
   try {
     resolveSafe(config.dataRoot, ".");
