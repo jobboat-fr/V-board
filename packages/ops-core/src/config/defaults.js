@@ -41,12 +41,11 @@ function getConfig(overrides = {}) {
       logDir: overrides.logDir || env("VBOARD_LOG_DIR", path.join(dataRoot, "ops", "logs")),
       level: overrides.logLevel || env("VBOARD_LOG_LEVEL", "info")
     },
-    supabase: {
-      enabled: (overrides.supabaseEnabled ?? env("VBOARD_SUPABASE_ENABLED", "true")) !== "false",
-      url: overrides.supabaseUrl || env("SUPABASE_URL", ""),
-      anonKey: overrides.supabaseAnonKey || env("SUPABASE_ANON_KEY", ""),
-      serviceRoleKey: overrides.supabaseServiceRoleKey || env("SUPABASE_SERVICE_ROLE_KEY", ""),
-      eventsTable: overrides.supabaseEventsTable || env("VBOARD_SUPABASE_EVENTS_TABLE", "vboard_api_events")
+    eventSink: {
+      enabled: (overrides.eventSinkEnabled ?? env("VBOARD_EVENT_SINK_ENABLED", "false")) !== "false",
+      url: overrides.eventSinkUrl || env("VBOARD_EVENT_SINK_URL", ""),
+      token: overrides.eventSinkToken || env("VBOARD_EVENT_SINK_TOKEN", ""),
+      tokenHeader: overrides.eventSinkTokenHeader || env("VBOARD_EVENT_SINK_TOKEN_HEADER", "authorization")
     },
     dataRoot
   };

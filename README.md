@@ -1,10 +1,22 @@
-# V-Board
+<div align="center">
 
-**Your entire ops team, automated.**
+<img src="docs/assets/banner.svg" alt="V-Board - Your entire ops team, automated." width="900"/>
+
+<br/>
+
+[![License: MIT](https://img.shields.io/badge/license-MIT-brightgreen?style=flat-square&labelColor=0d0b08&color=7eca6c)](LICENSE)
+[![Node](https://img.shields.io/badge/node-%3E%3D18-brightgreen?style=flat-square&labelColor=0d0b08&color=7eca6c)](package.json)
+[![Python](https://img.shields.io/badge/python-%3E%3D3.11-blue?style=flat-square&labelColor=0d0b08&color=4a9eca)](packages/meeting-room/requirements.txt)
+[![Docker](https://img.shields.io/badge/docker-compose-ready?style=flat-square&labelColor=0d0b08&color=e8a020)](docker-compose.yml)
+[![CI](https://img.shields.io/github/actions/workflow/status/jobboat-fr/V-board/ci.yml?branch=main&style=flat-square&labelColor=0d0b08&label=CI)](https://github.com/jobboat-fr/V-board/actions)
+
+</div>
+
+---
 
 V-Board is an open-source AI operations stack for routing business work, coordinating specialist AI departments, producing evidence-backed decisions, and keeping humans in control of the actions that matter.
 
-It is built for teams that want an AI front desk, CFO, CTO, legal reviewer, sales operator, meeting advisor, and back-office analyst without letting an agent blindly spend tokens, send messages, or mutate records.
+Built for teams that want an AI front desk, CFO, CTO, legal reviewer, sales operator, meeting advisor, and back-office analyst - without letting an agent blindly spend tokens, send messages, or mutate records.
 
 ## What It Does
 
@@ -73,21 +85,181 @@ docker compose --profile ollama up -d
 ## Architecture
 
 ```mermaid
-flowchart LR
-  A[Inbound work] --> B[Front desk / runner]
-  B --> C[Ops-core route gate]
-  C -->|runner_local| D[Runner handles]
-  C -->|needs evidence| E[Collect or ask human]
-  C -->|council_required| F[Specialist council]
-  F --> G[Decision and allowed actions]
-  G --> B
-  B --> H[External message or internal report]
-  C --> I[Evidence store]
-  F --> I
-  B --> I
-  J[Meeting room] --> C
-  J --> I
+flowchart TD
+    subgraph IN[Inputs]
+        A1[Email / API request]
+        A2[WhatsApp / chat]
+        A3[Meeting transcript or audio]
+        A4[Finance / bank event]
+    end
+
+    subgraph FD[Front Desk and Runner]
+        B[Route or Bridge]
+        B2[Cron jobs / scheduled tasks]
+    end
+
+    subgraph OC[Ops-Core 8-Step Pipeline]
+        C1["1. TaskRouter.classify\nKeyword ladder, zero LLM cost\nCategory, urgency P0-P3, restricted flag"]
+        C2["2. CostGuard.evaluate\nDaily and monthly budget check\nnormal / force_cheap / hard_stop"]
+        C3["3. buildWorkflow\nProspect Score D_fast formula\nMail policy, lead signals"]
+        C4["4. Kitchen Workers parallel\nMail classifier\nhot / warm / cold / spam"]
+        C5["5. Deal Room 0-100\nScore 82 activates deal captain\nScore 92 owner-pass"]
+        C6["6. Safety Gates x10\nAny gate blocks send and CRM\nOwner notify forced"]
+        C7["7. Work Order L1-L4\nDraft / Auto-send / Owner Gate / Hard Block"]
+        C8["8. CouncilRuntime\nExecutiveJudge decision tree\nEvidence written"]
+        C1 --> C2 --> C3 --> C4 --> C5 --> C6 --> C7 --> C8
+    end
+
+    subgraph CL[AI Council 5-Stage]
+        D1["Primary model\nRole-specialist answer\nWeight 1.5"]
+        D2A["Reviewer 1\nIndependent scoring 0-100\nWeight 1.3"]
+        D2B["Reviewer 2\nIndependent scoring 0-100\nWeight 1.2"]
+        D3{"Weighted consensus\nagreement >= 0.66?"}
+        D4["Chairman synthesis\nOnly if consensus fails\nWeight 2.0"]
+        D5["Behavioral overlay\n6 keyword pattern scan\nNo LLM call"]
+        D1 --> D2A
+        D1 --> D2B
+        D2A --> D3
+        D2B --> D3
+        D3 -->|pass| D5
+        D3 -->|fail| D4
+        D4 --> D5
+    end
+
+    subgraph MR[Meeting Room]
+        M1[Transcript or STT input]
+        M2{"Guard 1\nTranscript empty?"}
+        M3{"Guard 2\nAI spoke in last 3 turns?"}
+        M4{"Guard 3\nAny advisor signal?"}
+        M5["Advisor fan-out parallel\nCFO, CTO, COO\nCRM, Legal, Product"]
+        M6["Judge LLM\nspeak / urgency / message"]
+        M7{"Urgency high?"}
+        M8["Host approval gate\nPause for human"]
+        M9[Intervention written to transcript]
+        M1 --> M2
+        M2 -->|empty| SK1([skip, no cost])
+        M2 -->|ok| M3
+        M3 -->|spoke| SK2([skip, no cost])
+        M3 -->|ok| M4
+        M4 -->|no signal| SK3([skip, tokens saved])
+        M4 -->|signal| M5
+        M5 --> M6
+        M6 --> M7
+        M7 -->|normal or low| M9
+        M7 -->|high| M8
+        M8 --> M9
+    end
+
+    subgraph EV[Evidence Store]
+        I1[(Work orders\nstatus, owner, dept)]
+        I2[(Route decisions\nEMP and EST tagged facts)]
+        I3[(Meeting transcripts\ncommitments, escalations)]
+        I4[(Cost and budget log)]
+    end
+
+    subgraph ACT[Allowed Actions - Runner executes]
+        H1[Email send or draft]
+        H2[Owner WhatsApp notify]
+        H3[CRM update]
+        H4[Internal report]
+    end
+
+    A1 --> B
+    A2 --> B
+    A4 --> B
+    B2 --> OC
+    A3 --> M1
+    B --> OC
+    OC --> CL
+    CL -->|council output| OC
+    OC -->|runner_local| ACT
+    OC -->|needs evidence| EV1[Collect or ask human]
+    EV1 -->|evidence ready| OC
+    MR --> OC
+    OC --> EV
+    CL --> EV
+    MR --> EV
+    ACT --> EV
 ```
+
+## Algorithms
+
+V-Board is not a prompt wrapper. Each layer runs a defined algorithm before any model call is made.
+
+### VBoardCouncilEngine - 8-Step Request Pipeline
+
+Every POST to `/route` runs a fixed 8-step pipeline. Steps 1, 2, 3, 5, 6, and 7 are deterministic - no LLM, no variable cost.
+
+```
+Step 1  TaskRouter.classify()        Zero-cost keyword/regex category, urgency, restriction flags
+Step 2  CostGuard.evaluate()         Daily/monthly budget check; selects model plan or hard-stops
+Step 3  buildWorkflow()              Prospect Score (D_fast formula), mail policy, lead structuring
+Step 4  applyKitchenWorkers()        Parallel mail classifier - hot / warm / cold / spam
+Step 5  evaluateDealRoom()           0-100 deal score; activates deal captain at 82, owner-pass at 92
+Step 6  enforceSafetyGates()         10 named gates; any trigger blocks all send/CRM actions
+Step 7  buildWorkOrder()             Durable work unit with L1 Draft -> L4 Hard Block automation level
+Step 8  CouncilRuntime.run()         Model call + ExecutiveJudge decision tree + evidence write
+```
+
+### Prospect Score (D_fast)
+
+Deterministic lead qualification computed before any model call:
+
+```
+D_fast = (S x T x Psi) x Phi - (1 - E)   [normalized 0-1]
+
+S   Structure     contact reachability    (8 if email/site/phone, else 5)
+T   Timing        urgency signals         (8 if keyword match, else 6)
+Psi   Upside        pain points             (5 if needs discovery, else 8)
+Phi   Connectivity  sector fit              (8 for saas/agency/edu/recruiting, else 6)
+E   Exposure      risk level              (5 if restricted keywords, else 9)
+
+strong_pick (D_fast > 0.60) -> +7 deal room pts
+maybe       (D_fast >= 0.30) -> +3 deal room pts
+reject      (D_fast < 0.30) -> -30 deal room pts
+```
+
+### AIWorkerCollective - 5-Stage Meeting Council
+
+Used in the meeting room when a high-stakes intervention is considered:
+
+```
+Stage 1  Primary model          role-specialist answer                   weight 1.5
+Stage 2  2x Reviewers parallel  independent scoring (0-100)              weights 1.3, 1.2
+Stage 3  Weighted consensus     agreement >= 0.66 required for approval
+Stage 4  Chairman synthesis     invoked only when consensus fails        weight 2.0
+Stage 5  Behavioral overlay     keyword pattern scan (no LLM call)
+```
+
+Reviewers score on: `relevance`, `accuracy`, `risk_assessment`, `tone`, `overall`. A reviewer approves when `overall >= 70`. The chairman synthesizes a final answer from both reviewer critiques and is only invoked when consensus fails. Three independent model families prevent bias collapse.
+
+### Intervention Judge - Token-Efficient Guard Chain
+
+Before any LLM fan-out, three deterministic guards short-circuit the intervention check:
+
+```
+Guard 1  transcript empty?           -> skip (no cost)
+Guard 2  AI spoke in last 3 turns?   -> skip (no cost)
+Guard 3  no advisor signal?          -> skip (saves all fan-out tokens)
+         then, only if all pass
+         6 specialty advisors in parallel (CFO, CTO, COO, CRM, Legal, Product)
+         then
+         single judge LLM call -> strict JSON decision
+```
+
+### Safety Gates
+
+10 named gates enforced deterministically before and after model calls. Any triggered gate blocks all automated send and CRM actions and forces an `owner_whatsapp:notify_owner` action:
+
+`NON_OWNER_RESTRICTED_REFUSAL` | `OWNER_ONLY_RESTRICTED_DATA` | `HOT_MAIL_OWNER_APPROVAL` | `WARM_MAIL_OWNER_APPROVAL` | `RESTRICTED_MAIL_OWNER_ONLY` | `SPAM_NO_REPLY` | `DEAL_ROOM_OWNER_REVIEW` | `COLD_REJECT_BLOCKS_AUTOSEND` | `BUDGET_FORCE_CHEAP_MODE` | `BUDGET_HARD_STOP`
+
+### Behavioral Pattern Overlay
+
+Runs a keyword scan over each meeting transcript. No LLM call. Currently detects 6 patterns (`urgency_inflation`, `commitment_avoidance`, `dominance_signaling`, `appeasement`, `trust_building`, `defensive_posture`). The full 572-pattern behavioral registry is the Phase 4 target.
+
+See [`docs/ALGORITHMS.md`](docs/ALGORITHMS.md) for complete specifications with thresholds, formulas, and implementation status.
+
+---
 
 ## Contracts That Matter
 
@@ -98,7 +270,7 @@ flowchart LR
 - **Meeting event**: transcripts, decisions, commitments, escalations, avatar sessions, and generated audio are logged per room.
 - **Provider adapter**: provider-specific secrets and SDKs stay at the adapter edge, not in the product core.
 
-See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), [`docs/CONTRACTS.md`](docs/CONTRACTS.md), and [`docs/PROVIDER_ADAPTERS.md`](docs/PROVIDER_ADAPTERS.md).
+See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), [`docs/CONTRACTS.md`](docs/CONTRACTS.md), [`docs/PROVIDER_ADAPTERS.md`](docs/PROVIDER_ADAPTERS.md), and [`docs/ALGORITHMS.md`](docs/ALGORITHMS.md).
 
 ## Meeting Room
 
@@ -165,13 +337,43 @@ python packages/meeting-room/scripts/check_meeting_room_security.py
 
 ## Status
 
-This repository is being prepared as a serious open-source automation framework. The next milestones are:
+This repository is an actively developed open-source automation framework. The architecture is stable; the gaps below are known and tracked.
 
-- Stable JSON schemas for route decisions, work orders, evidence, and meeting events.
-- More provider adapter examples outside the core.
-- One-command Docker demo with seeded fixtures.
-- Release tags, changelog, and issue templates.
-- Operator dashboard for model usage, cost, blocked work, and evidence trails.
+### What is shipped
+
+- Full 8-step deterministic routing pipeline (TaskRouter -> CostGuard -> WorkOrder -> CouncilRuntime)
+- 10 safety gates enforced before model calls
+- D_fast prospect scoring formula (zero LLM cost)
+- 0-100 deal room score with six team briefs
+- 5-stage AIWorkerCollective council with weighted consensus voting
+- Intervention judge with 3-guard token-efficient chain
+- Meeting room with transcript memory, escalation, host approval, and evidence store
+- JS test suite (`packages/ops-core/tests/run.js`, `packages/council/scripts/hardening_test.js`)
+- Python test suite (`packages/meeting-room/tests/`)
+- GitHub Actions CI for JS, meeting-room, and deploy
+
+### Gaps vs production-shipped quality
+
+| Gap | Impact | Priority |
+|-----|--------|----------|
+| Behavioral overlay: 6 patterns implemented, 572 planned | Meeting room misses most behavioral signals | Phase 4 |
+| No JSON schemas for route decision, work order, evidence contracts | Downstream consumers can't validate | High |
+| No CHANGELOG.md | Integrators can't track breaking changes | High |
+| No GitHub issue templates | Community contribution friction | Medium |
+| No rate limiting on HTTP endpoints | DoS risk at scale | Medium |
+| Dedup cache is in-process only | Does not survive restarts | Medium |
+| No operator dashboard | Cost/blocked-work visibility requires log parsing | Low |
+| Provider adapter examples limited to core | Integrators must read source to onboard | Low |
+
+### Next milestones
+
+- Stable JSON schemas for route decisions, work orders, evidence, and meeting events
+- CHANGELOG.md and semantic release tags
+- Issue templates and contribution guide
+- Rate limiting on `/route` and meeting-room endpoints
+- Behavioral pattern registry expansion (Phase 4)
+- One-command Docker demo with seeded fixtures
+- Operator dashboard for model usage, cost, blocked work, and evidence trails
 
 ## License
 

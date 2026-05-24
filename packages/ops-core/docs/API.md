@@ -91,16 +91,16 @@ Protected live endpoints:
 
 - `GET /v1/observability/summary` (`observability:read`)
 - `GET /v1/observability/events?limit=100` (`observability:read`)
-- `GET /v1/observability/supabase` (`observability:read`)
+- `GET /v1/observability/sink` (`observability:read`)
 - `POST /v1/observability/test` (`observability:write`)
 
 Every API request writes:
 
 - local JSONL: `VBOARD_LOG_DIR/api-events.jsonl`
 - Winston logs: `VBOARD_LOG_DIR/api.log` and `VBOARD_LOG_DIR/api-error.log`
-- optional Supabase table: `VBOARD_SUPABASE_EVENTS_TABLE`
+- optional generic REST event sink: `VBOARD_EVENT_SINK_URL`
 
-The Supabase `service_role` key must stay server-side. The dashboard never receives it.
+The event sink token must stay server-side. The dashboard never receives it.
 
 ## Files
 

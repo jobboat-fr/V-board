@@ -115,21 +115,21 @@ The dashboard checks:
 - `/ready`
 - `/v1/observability/summary`
 - `/v1/observability/events`
-- `/v1/observability/supabase`
+- `/v1/observability/sink`
 
 Logging outputs:
 
 - local JSONL: `VBOARD_LOG_DIR/api-events.jsonl`
 - Winston app log: `VBOARD_LOG_DIR/api.log`
 - Winston error log: `VBOARD_LOG_DIR/api-error.log`
-- optional Supabase table: `VBOARD_SUPABASE_EVENTS_TABLE`
+- optional generic REST event sink: `VBOARD_EVENT_SINK_URL`
 
-Supabase is server-side only. Do not put the `service_role` key in browser code.
+The event sink is server-side only. Do not put `VBOARD_EVENT_SINK_TOKEN` in browser code.
 
-Create the Supabase table with:
+If your event sink is backed by Postgres, use this table shape:
 
 ```bash
-deploy/supabase_observability.sql
+deploy/observability_events.sql
 ```
 
 ## MCP Config

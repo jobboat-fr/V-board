@@ -55,9 +55,9 @@ function computeDealScore({ request = {}, route = {}, workflow = {} } = {}) {
   if (mail.label === "warm_mail") score = Math.max(score, 58);
   if (mail.label === "cold_mail" && mail.auto_send_allowed) score = Math.max(score, 36);
 
-  if (signals.azzing?.decision === "strong_pick") score += 7;
-  if (signals.azzing?.decision === "maybe") score += 3;
-  if (signals.azzing?.decision === "reject") score -= 30;
+  if (signals.prospect_score?.decision === "strong_pick") score += 7;
+  if (signals.prospect_score?.decision === "maybe") score += 3;
+  if (signals.prospect_score?.decision === "reject") score -= 30;
 
   if (hasAny(text, ["budget", "pricing", "price", "devis", "proposal", "proposition"])) score += 8;
   if (hasAny(text, ["contract", "sign", "signature", "terms", "conditions"])) score += 10;

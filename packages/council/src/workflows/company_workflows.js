@@ -187,7 +187,7 @@ function buildColdEmailDraft(lead, signals, mailPolicy = null) {
 }
 
 function buildCrmUpdate(lead, signals, route) {
-  const stage = signals.azzing.decision === "strong_pick" ? "qualified_draft_ready" : "research_needed";
+  const stage = signals.prospect_score.decision === "strong_pick" ? "qualified_draft_ready" : "research_needed";
   const nextAction = lead.email
     ? "Owner review: approve exact email draft before the agent runtime sends."
     : "Find public business email or use contact form; do not guess an address.";
@@ -195,7 +195,7 @@ function buildCrmUpdate(lead, signals, route) {
   return {
     lead_id_hint: lead.website || lead.email || lead.name,
     stage,
-    priority: route.urgency === "P0" || route.urgency === "P1" ? "high" : signals.azzing.decision === "strong_pick" ? "medium" : "low",
+    priority: route.urgency === "P0" || route.urgency === "P1" ? "high" : signals.prospect_score.decision === "strong_pick" ? "medium" : "low",
     tags: ["vboard", route.category, lead.sector, ...signals.painPoints].filter(Boolean),
     fields: {
       company: lead.name,
@@ -205,7 +205,7 @@ function buildCrmUpdate(lead, signals, route) {
       location: lead.location || null,
       need_est: lead.need,
       best_offer_est: bestOffer(signals),
-      azzing_score: signals.azzing
+      prospect_score: signals.prospect_score
     },
     next_action: nextAction,
     follow_up: {
@@ -230,7 +230,7 @@ function buildAgentRuntimeHandoff({ route, lead, signals, draft, crmUpdate, mail
           title: mailPolicy?.label === "hot_mail" ? "Hot mail requires approval" : "Lead prepared for review",
           company: lead.name,
           mail_label: mailPolicy?.label || "unlabeled",
-          score: signals.azzing,
+          score: signals.prospect_score,
           next_action: crmUpdate.next_action
         }
       },

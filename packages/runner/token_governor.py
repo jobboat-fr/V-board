@@ -103,7 +103,7 @@ def category_for(path: Path, text: str) -> str:
         ("payroll", r"paie|payslip|bulletin|salaire|payroll"),
         ("legal_company", r"statuts|kbis|siren|siret|greffe|capital social|sas|afeje"),
         ("contract", r"contrat|contract|signature|agreement|terms"),
-        ("strategy_internal", r"whitepaper|framework|azzing|strategy|business plan"),
+        ("strategy_internal", r"whitepaper|framework|prospecting|strategy|business plan"),
     ]
     for cat, pattern in checks:
         if re.search(pattern, hay):

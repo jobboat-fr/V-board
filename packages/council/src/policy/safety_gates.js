@@ -21,18 +21,18 @@ function evaluateSafetyGates({ request = {}, route = {}, workflow = {}, budget =
   if (mailPolicy?.label === "restricted_internal") gates.push("RESTRICTED_MAIL_OWNER_ONLY");
   if (mailPolicy?.label === "spam") gates.push("SPAM_NO_REPLY");
   if (workflow?.deal_room?.active) gates.push("DEAL_ROOM_OWNER_REVIEW");
-  const azzing = workflow?.signals?.azzing || {};
-  const azzingRejectShouldBlock = Boolean(
+  const prospectEval = workflow?.signals?.prospect_score || {};
+  const coldRejectShouldBlock = Boolean(
     mailPolicy?.label === "cold_mail" &&
-      azzing.decision === "reject" &&
+      prospectEval.decision === "reject" &&
       (
         !mailPolicy?.compliance?.pass ||
-        Number(azzing.E || 0) < 7 ||
-        Number(azzing.S || 0) < 7
+        Number(prospectEval.E || 0) < 7 ||
+        Number(prospectEval.S || 0) < 7
       )
   );
-  if (azzingRejectShouldBlock) {
-    gates.push("AZZING_REJECT_BLOCKS_AUTOSEND");
+  if (coldRejectShouldBlock) {
+    gates.push("COLD_REJECT_BLOCKS_AUTOSEND");
   }
   if (budget.mode === "force_cheap") gates.push("BUDGET_FORCE_CHEAP_MODE");
   if (budget.mode === "hard_stop") gates.push("BUDGET_HARD_STOP");
@@ -46,7 +46,7 @@ function evaluateSafetyGates({ request = {}, route = {}, workflow = {}, budget =
     "RESTRICTED_MAIL_OWNER_ONLY",
     "SPAM_NO_REPLY",
     "DEAL_ROOM_OWNER_REVIEW",
-    "AZZING_REJECT_BLOCKS_AUTOSEND",
+    "COLD_REJECT_BLOCKS_AUTOSEND",
     "BUDGET_FORCE_CHEAP_MODE",
     "BUDGET_HARD_STOP"
   ].includes(gate));
