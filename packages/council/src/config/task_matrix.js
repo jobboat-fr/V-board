@@ -2,7 +2,7 @@
 
 const TASK_MATRIX = {
   morning_brief: {
-    description: "Owner morning executive brief from Hostinger evidence packets.",
+    description: "Owner morning executive brief from front desk evidence packets.",
     criticality: "medium",
     defaultModel: "business-workhorse",
     council: ["operations_planner", "crm_analyst", "cto_analyst", "cost_guard", "skeptic"],
@@ -11,7 +11,7 @@ const TASK_MATRIX = {
     ownerApproval: false
   },
   mail_triage: {
-    description: "Inbox triage synthesis from Hostinger mail collector evidence; labels hot/warm/cold/admin/finance/legal/security and approval gates.",
+    description: "Inbox triage synthesis from front desk mail collector evidence; labels hot/warm/cold/admin/finance/legal/security and approval gates.",
     criticality: "medium",
     defaultModel: "cheap-default",
     council: ["mail_labeler", "communications_triage", "compliance_guard", "skeptic"],
@@ -177,14 +177,14 @@ const TASK_MATRIX = {
     criticality: "high",
     defaultModel: "business-workhorse",
     council: ["cto_analyst", "security_skeptic", "cost_guard"],
-    judge: "ovh-cto-specialist",
+    judge: "back-office-cto-specialist",
     maxInputTokens: 18000,
     ownerApproval: false
   },
   legal_accounting: {
     description: "Legal, accounting, fiscal, social, bank, invoice, expense review.",
     criticality: "critical",
-    defaultModel: "ovh-legal-specialist",
+    defaultModel: "back-office-legal-specialist",
     council: ["legal_analyst", "accounting_analyst", "skeptic", "document_verifier"],
     judge: "premium-judge",
     maxInputTokens: 24000,
@@ -194,7 +194,7 @@ const TASK_MATRIX = {
   legal_finance_sentinel: {
     description: "Preventive legal, accounting, fiscal, document, bank, and social-risk sentinel.",
     criticality: "critical",
-    defaultModel: "ovh-legal-specialist",
+    defaultModel: "back-office-legal-specialist",
     council: ["legal_analyst", "accounting_analyst", "document_verifier", "cost_guard", "skeptic"],
     judge: "premium-judge",
     maxInputTokens: 24000,
@@ -204,9 +204,9 @@ const TASK_MATRIX = {
   invoice_reconciliation: {
     description: "Match bank transactions to invoices and detect missing documents.",
     criticality: "high",
-    defaultModel: "ovh-accounting-specialist",
+    defaultModel: "back-office-accounting-specialist",
     council: ["accounting_analyst", "document_verifier", "skeptic"],
-    judge: "ovh-accounting-specialist",
+    judge: "back-office-accounting-specialist",
     maxInputTokens: 18000,
     ownerApproval: true,
     restricted: true
@@ -214,7 +214,7 @@ const TASK_MATRIX = {
   deep_legal_scan: {
     description: "Deep owner-only legal scan of indexed company evidence, commitments, contracts, and missing proof.",
     criticality: "critical",
-    defaultModel: "ovh-legal-specialist",
+    defaultModel: "back-office-legal-specialist",
     council: ["legal_analyst", "document_verifier", "skeptic"],
     judge: "premium-judge",
     maxInputTokens: 26000,
@@ -224,9 +224,9 @@ const TASK_MATRIX = {
   deep_accounting_scan: {
     description: "Deep owner-only accounting scan of bank, invoice, receipt, and accountant-ready evidence.",
     criticality: "critical",
-    defaultModel: "ovh-accounting-specialist",
+    defaultModel: "back-office-accounting-specialist",
     council: ["accounting_analyst", "document_verifier", "cost_guard", "skeptic"],
-    judge: "ovh-accounting-specialist",
+    judge: "back-office-accounting-specialist",
     maxInputTokens: 26000,
     ownerApproval: true,
     restricted: true
@@ -244,7 +244,7 @@ const TASK_MATRIX = {
   document_vault: {
     description: "Audit indexed company documents, missing legal/accounting evidence, and document-memory gaps.",
     criticality: "high",
-    defaultModel: "ovh-legal-specialist",
+    defaultModel: "back-office-legal-specialist",
     council: ["document_verifier", "legal_analyst", "accounting_analyst", "skeptic"],
     judge: "business-workhorse",
     maxInputTokens: 20000,

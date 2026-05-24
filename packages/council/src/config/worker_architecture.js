@@ -3,21 +3,21 @@
 const KITCHEN_WORKERS = {
   mail_labeler: {
     purpose: "Label incoming/outbound email as cold, warm, hot, restricted, support, or spam.",
-    preferredModel: "hf-zero-shot-classifier",
+    preferredModel: "classifier-zero-shot",
     fallbackModel: "cheap-default",
     maxInputTokens: 1200,
     outputSchema: ["label", "temperature_score", "confidence", "approval_required", "reason"]
   },
   mail_compliance_guard: {
     purpose: "Check outreach safety, opt-out, truthful claims, B2B relevance, and owner-approval gates.",
-    preferredModel: "hf-zero-shot-classifier",
+    preferredModel: "classifier-zero-shot",
     fallbackModel: "cheap-default",
     maxInputTokens: 900,
     outputSchema: ["compliance_pass", "blocked_reason", "required_edits"]
   },
   cold_outreach_writer: {
     purpose: "Write short personalized B2B cold emails from structured evidence packets.",
-    preferredModel: "together-free-writer",
+    preferredModel: "fallback-free-writer",
     fallbackModel: "business-workhorse",
     maxInputTokens: 1800,
     outputSchema: ["subject", "body", "language", "opt_out_present"]
@@ -57,3 +57,4 @@ module.exports = {
   KITCHEN_WORKERS,
   workersForCategory
 };
+

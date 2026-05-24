@@ -1,5 +1,5 @@
 """
-Intervention check — "should the AI raise its hand right now?"
+Intervention check â€” "should the AI raise its hand right now?"
 
 Called after each transcribed utterance (or on a heartbeat).
 Fans out to specialty advisors in parallel, then asks a judge LLM
@@ -28,7 +28,7 @@ from . import short_term_memory as stm
 logger = logging.getLogger("meeting_room.intervention")
 
 
-# ─── Judge system prompt ──────────────────────────────────────────────────────
+# â”€â”€â”€ Judge system prompt â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 _JUDGE_SYSTEM = """\
 You are the single AI voice advisor in an ongoing meeting with other humans.
@@ -69,19 +69,19 @@ def _advisor_system(specialty_name: str) -> str:
     )
 
 
-# ─── Advisor registry ─────────────────────────────────────────────────────────
+# â”€â”€â”€ Advisor registry â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 ADVISORS = {
-    "cfo":     {"name": "CFO — Finance & ROI"},
-    "cto":     {"name": "CTO — Technology & Architecture"},
-    "coo":     {"name": "COO — Operations & Execution"},
-    "crm":     {"name": "CRM — Customer Relations & Pipeline"},
-    "legal":   {"name": "Legal — Compliance & Risk"},
-    "product": {"name": "Product — UX & Roadmap"},
+    "cfo":     {"name": "CFO â€” Finance & ROI"},
+    "cto":     {"name": "CTO â€” Technology & Architecture"},
+    "coo":     {"name": "COO â€” Operations & Execution"},
+    "crm":     {"name": "CRM â€” Customer Relations & Pipeline"},
+    "legal":   {"name": "Legal â€” Compliance & Risk"},
+    "product": {"name": "Product â€” UX & Roadmap"},
 }
 
 
-# ─── Main entry point ─────────────────────────────────────────────────────────
+# â”€â”€â”€ Main entry point â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 async def check_intervention(ctx: dict) -> dict:
     """
@@ -100,31 +100,31 @@ async def check_intervention(ctx: dict) -> dict:
 
     window = stm.recent(room_id, window_size)
 
-    # ── Guard 1: empty transcript
+    # â”€â”€ Guard 1: empty transcript
     if not window:
         return {"speak": False, "reason": "transcript_empty"}
 
-    # ── Guard 2: AI just spoke recently (last 3 turns)
+    # â”€â”€ Guard 2: AI just spoke recently (last 3 turns)
     if any(u["kind"] == "ai" for u in window[-3:]):
         return {"speak": False, "reason": "just_spoke_recently"}
 
     transcript = "\n".join(f"{u['speaker_name']}: {u['text']}" for u in window)
 
-    # ── Fan-out: parallel specialty observations
+    # â”€â”€ Fan-out: parallel specialty observations
     observations = await _run_specialty_fan_out(
         active_advisors, topic, transcript
     )
 
-    # ── Guard 3: no specialist had anything to say → skip judge (saves tokens)
+    # â”€â”€ Guard 3: no specialist had anything to say â†’ skip judge (saves tokens)
     if not observations:
         return {"speak": False, "reason": "no_advisor_signal"}
 
-    # ── Judge: should we actually speak?
+    # â”€â”€ Judge: should we actually speak?
     result = await _run_judge(topic, transcript, observations, long_term_memory)
     return result
 
 
-# ─── Fan-out ──────────────────────────────────────────────────────────────────
+# â”€â”€â”€ Fan-out â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 async def _run_specialty_fan_out(
     active_advisors: list[str],
@@ -160,7 +160,7 @@ async def _run_specialty_fan_out(
     return [r for r in results if r is not None]
 
 
-# ─── Judge ────────────────────────────────────────────────────────────────────
+# â”€â”€â”€ Judge â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 async def _run_judge(
     topic: str,
@@ -205,17 +205,17 @@ async def _run_judge(
     }
 
 
-# ─── LLM call (uses hermes multi-provider client) ────────────────────────────
+# â”€â”€â”€ LLM call (uses agent runtime multi-provider client) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 async def _llm_call(*, system: str, user: str, temperature: float, max_tokens: int) -> str:
     """
     Route to the best available LLM backend.
 
     Resolution order:
-    1. hermes auxiliary_client.call_llm — respects the user's configured
-       provider/model (Anthropic, OpenAI, OpenRouter, Nous Portal, etc.)
-    2. Direct Anthropic AsyncAnthropic SDK — fallback when running outside
-       the main hermes process (e.g. standalone HTTP server mode).
+    1. agent runtime auxiliary_client.call_llm â€” respects the user's configured
+       provider/model (configured LLM providers)
+    2. Direct primary LLM SDK â€” fallback when running outside
+       the main agent runtime process (e.g. standalone HTTP server mode).
 
     The auxiliary client is synchronous; we offload it to a thread so
     the meeting-room's async fan-out can stay non-blocking.
@@ -225,7 +225,7 @@ async def _llm_call(*, system: str, user: str, temperature: float, max_tokens: i
         {"role": "user", "content": user},
     ]
 
-    # 1 — hermes native: respects whatever model/provider the user configured
+    # 1 â€” agent runtime native: respects whatever model/provider the user configured
     try:
         from agent.auxiliary_client import call_llm
         loop = asyncio.get_event_loop()
@@ -242,13 +242,21 @@ async def _llm_call(*, system: str, user: str, temperature: float, max_tokens: i
     except Exception:
         pass
 
-    # 2 — direct Anthropic SDK fallback (standalone / container mode)
-    anthropic_key = os.getenv("ANTHROPIC_API_KEY", "")
-    if anthropic_key:
-        from anthropic import AsyncAnthropic
-        client = AsyncAnthropic(api_key=anthropic_key)
+    # 2 - direct SDK fallback (standalone / container mode).
+    # Operators provide the module and async client class for their chosen LLM SDK.
+    primary_key = os.getenv("PRIMARY_LLM_API_KEY", "")
+    module_name = os.getenv("PRIMARY_LLM_SDK_MODULE", "")
+    client_name = os.getenv("PRIMARY_LLM_SDK_CLIENT", "")
+    if primary_key and module_name and client_name:
+        import importlib
+        try:
+            module = importlib.import_module(module_name)
+            AsyncPrimaryClient = getattr(module, client_name)
+        except (ImportError, AttributeError) as exc:
+            raise RuntimeError("configured primary LLM SDK is not available") from exc
+        client = AsyncPrimaryClient(api_key=primary_key)
         msg = await client.messages.create(
-            model=os.getenv("COUNCIL_PRIMARY_MODEL", "claude-sonnet-4-5"),
+            model=os.getenv("COUNCIL_PRIMARY_MODEL", "primary-meeting-model"),
             system=system,
             messages=[{"role": "user", "content": user}],
             temperature=temperature,
@@ -258,5 +266,7 @@ async def _llm_call(*, system: str, user: str, temperature: float, max_tokens: i
 
     raise RuntimeError(
         "No LLM provider available for meeting-room intervention judge. "
-        "Set ANTHROPIC_API_KEY, OPENAI_API_KEY, or OPENROUTER_API_KEY."
+        "Set PRIMARY_LLM_API_KEY plus PRIMARY_LLM_SDK_MODULE/PRIMARY_LLM_SDK_CLIENT, "
+        "or configure the platform LLM router."
     )
+

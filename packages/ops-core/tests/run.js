@@ -11,8 +11,8 @@ const { createServer } = require("../src/server/httpServer");
 const { handleRequest } = require("../src/mcp/server");
 const { getConfig } = require("../src/config/defaults");
 const { WorkOrderStore } = require("../src/core/workOrderStore");
-const { buildCfoStack, financeStatus, importQontoReconciliation } = require("../src/finance/cfoStack");
-const { pullQontoSnapshot } = require("../src/finance/qontoApi");
+const { buildCfoStack, financeStatus, importBankReconciliation } = require("../src/finance/cfoStack");
+const { pullBankSnapshot } = require("../src/finance/bankApi");
 const { createApiKey } = require("../src/server/apiKeys");
 
 // ─── helpers ────────────────────────────────────────────────────────────────
@@ -113,7 +113,7 @@ function testRoutePolicy() {
   assert.strictEqual(classify({
     category: "legal_accounting",
     urgency: "P1",
-    prompt: "Check Qonto bank invoices"
+    prompt: "Check bank API bank invoices"
   }).route, "council_required", "legal_accounting should be council_required");
 
   // Incident watchdog → council_required
@@ -161,7 +161,7 @@ function testCouncilMaySendInvariant() {
     { category: "legal_accounting", urgency: "P1", prompt: "tax urssaf filing" },
     { prompt: "p0 data leak breach" },
     { category: "cold_email_campaign", urgency: "P3", temperature: 20, mail_label: "cold_mail", owner: true, lead: { email: "a@b.com", website: "https://example.com" }, prompt: "cold outreach" },
-    { prompt: "invoice receipt qonto transaction" },
+    { prompt: "invoice receipt bank transaction" },
     { prompt: "deploy vercel railway security uptime" },
     { category: "crm_pipeline", urgency: "P3", temperature: 20, prompt: "crm pipeline follow-up" },
     { restricted: true, prompt: "confidential contract review" },
@@ -198,9 +198,9 @@ function testCompactEvidence() {
 // ─── HTTP API ────────────────────────────────────────────────────────────────
 
 async function testHttpApi() {
-  const dataRoot = fs.mkdtempSync(path.join(os.tmpdir(), "azzco-ops-core-"));
+  const dataRoot = fs.mkdtempSync(path.join(os.tmpdir(), "vboard-ops-core-"));
   const crmKey = createApiKey({ name: "crm-test", scopes: "route:read,work_orders:read,work_orders:write,department:dispatch" });
-  const financeKey = createApiKey({ name: "finance-test", scopes: "finance:read,finance:write,qonto:pull" });
+  const financeKey = createApiKey({ name: "finance-test", scopes: "finance:read,finance:write,bank:pull" });
   const opsKey = createApiKey({ name: "ops-test", scopes: "observability:read,observability:write" });
   const keysFile = path.join(dataRoot, "api_keys.json");
   writeJson(keysFile, { keys: [crmKey.entry, financeKey.entry, opsKey.entry] });
@@ -208,7 +208,7 @@ async function testHttpApi() {
   await withServer(config, async (port) => {
     const dashboard = await requestText(port, "GET", "/dashboard", { accept: "text/html" });
     assert.strictEqual(dashboard.status, 200);
-    assert.ok(dashboard.body.includes("AZZCO Ops Live"));
+    assert.ok(dashboard.body.includes("VBOARD Ops Live"));
 
     // Health (public, no auth)
     const health = await request(port, "GET", "/health");
@@ -229,7 +229,7 @@ async function testHttpApi() {
     const route = await request(port, "POST", "/v1/route", {
       category: "legal_accounting",
       urgency: "P1",
-      prompt: "Check Qonto bank invoices"
+      prompt: "Check bank API bank invoices"
     }, crmKey.token);
     assert.strictEqual(route.status, 200);
     assert.strictEqual(route.body.route, "council_required");
@@ -269,13 +269,13 @@ async function testHttpApi() {
     assert.strictEqual(finance.body.status, "blocked");
     assert.ok(finance.body.blockers.includes("BANK_TRANSACTIONS_MISSING"));
 
-    writeJson(path.join(dataRoot, "reports", "qonto.json"), {
+    writeJson(path.join(dataRoot, "reports", "bank.json"), {
       transactions: [
         { id: "api-1", label: "RAILWAY", amount: 12.5, side: "debit", currency: "EUR", settled_at: "2026-02-20T10:00:00Z" }
       ],
       uploads: []
     });
-    const imported = await request(port, "POST", "/v1/finance/import-qonto", { reportPath: "reports/qonto.json" }, financeKey.token);
+    const imported = await request(port, "POST", "/v1/finance/import-bank", { reportPath: "reports/bank.json" }, financeKey.token);
     assert.strictEqual(imported.status, 200);
     assert.strictEqual(imported.body.status, "imported_debit_only");
     assert.strictEqual(imported.body.transactionCount, 1);
@@ -296,7 +296,7 @@ async function testHttpApi() {
 // ─── work order store ────────────────────────────────────────────────────────
 
 function testWorkOrderStore() {
-  const dataRoot = fs.mkdtempSync(path.join(os.tmpdir(), "azzco-wos-"));
+  const dataRoot = fs.mkdtempSync(path.join(os.tmpdir(), "vboard-wos-"));
   const store = new WorkOrderStore(dataRoot);
 
   store.create({ project: "alpha", title: "Task A", status: "open" });
@@ -318,36 +318,36 @@ function testWorkOrderStore() {
 // ─── MCP ─────────────────────────────────────────────────────────────────────
 
 async function testMcp() {
-  const dataRoot = fs.mkdtempSync(path.join(os.tmpdir(), "azzco-mcp-"));
+  const dataRoot = fs.mkdtempSync(path.join(os.tmpdir(), "vboard-mcp-"));
   const config = getConfig({ dataRoot });
 
   // tools/list — should include all 9 tools
   const list = await handleRequest({ jsonrpc: "2.0", id: 1, method: "tools/list" }, config);
   const toolNames = list.result.tools.map((t) => t.name);
-  for (const name of ["azzco_route", "azzco_bridge", "azzco_file_read", "azzco_file_write", "azzco_file_list", "azzco_work_order_create", "azzco_work_order_list", "azzco_health", "azzco_finance_build", "azzco_finance_status", "azzco_finance_import_qonto", "azzco_finance_pull_qonto", "azzco_policy"]) {
+  for (const name of ["vboard_route", "vboard_bridge", "vboard_file_read", "vboard_file_write", "vboard_file_list", "vboard_work_order_create", "vboard_work_order_list", "vboard_health", "vboard_finance_build", "vboard_finance_status", "vboard_finance_import_bank", "vboard_finance_pull_bank", "vboard_policy"]) {
     assert.ok(toolNames.includes(name), `tools/list must include ${name}`);
   }
 
-  // azzco_route — simple chat should be runner_local
+  // vboard_route — simple chat should be runner_local
   const route = await handleRequest({
     jsonrpc: "2.0", id: 2, method: "tools/call",
-    params: { name: "azzco_route", arguments: { category: "simple_chat", urgency: "P3", prompt: "hello" } }
+    params: { name: "vboard_route", arguments: { category: "simple_chat", urgency: "P3", prompt: "hello" } }
   }, config);
   assert.ok(route.result.content[0].text.includes("runner_local"));
 
-  // azzco_health
+  // vboard_health
   const healthResp = await handleRequest({
     jsonrpc: "2.0", id: 3, method: "tools/call",
-    params: { name: "azzco_health", arguments: {} }
+    params: { name: "vboard_health", arguments: {} }
   }, config);
   const health = JSON.parse(healthResp.result.content[0].text);
   assert.strictEqual(health.ok, true);
-  assert.strictEqual(health.service, "azzco-ops-core");
+  assert.strictEqual(health.service, "vboard-ops-core");
 
-  // azzco_policy — must assert council_may_send: false invariant
+  // vboard_policy — must assert council_may_send: false invariant
   const policyResp = await handleRequest({
     jsonrpc: "2.0", id: 4, method: "tools/call",
-    params: { name: "azzco_policy", arguments: {} }
+    params: { name: "vboard_policy", arguments: {} }
   }, config);
   const policy = JSON.parse(policyResp.result.content[0].text);
   assert.strictEqual(policy.invariants.council_may_send, false);
@@ -355,19 +355,19 @@ async function testMcp() {
 
   const financeStatusResp = await handleRequest({
     jsonrpc: "2.0", id: 41, method: "tools/call",
-    params: { name: "azzco_finance_status", arguments: {} }
+    params: { name: "vboard_finance_status", arguments: {} }
   }, config);
   const financeBefore = JSON.parse(financeStatusResp.result.content[0].text);
   assert.strictEqual(financeBefore.status, "missing");
 
-  // azzco_work_order_create + azzco_work_order_list with project filter
+  // vboard_work_order_create + vboard_work_order_list with project filter
   await handleRequest({
     jsonrpc: "2.0", id: 5, method: "tools/call",
-    params: { name: "azzco_work_order_create", arguments: { project: "test-proj", title: "MCP task" } }
+    params: { name: "vboard_work_order_create", arguments: { project: "test-proj", title: "MCP task" } }
   }, config);
   const woList = await handleRequest({
     jsonrpc: "2.0", id: 6, method: "tools/call",
-    params: { name: "azzco_work_order_list", arguments: { project: "test-proj" } }
+    params: { name: "vboard_work_order_list", arguments: { project: "test-proj" } }
   }, config);
   const wos = JSON.parse(woList.result.content[0].text);
   assert.ok(wos.workOrders.some((wo) => wo.project === "test-proj" && wo.title === "MCP task"));
@@ -387,10 +387,10 @@ async function testMcp() {
 function seedFinanceContext(dataRoot, validationOverride = {}) {
   const ctx = path.join(dataRoot, "ops", "context");
   writeJson(path.join(ctx, "bank_transactions.json"), [
-    { id: "injection-1", date: "2026-02-01", merchant: "Azer Rached", amount: 1000, sourceDocument: "february_2026.pdf" },
-    { id: "client-1", date: "2026-02-10", merchant: "M SIDY DIABE", amount: 500, sourceDocument: "february_2026.pdf" },
-    { id: "dup-transfer", date: "2026-02-11", merchant: "Azer Rached", amount: 250, sourceDocument: "february_2026.pdf" },
-    { id: "dup-transfer", date: "2026-02-12", merchant: "Azer Rached", amount: 250, sourceDocument: "february_2026.pdf" },
+    { id: "injection-1", date: "2026-02-01", merchant: "Owner Transfer", amount: 1000, sourceDocument: "february_2026.pdf" },
+    { id: "client-1", date: "2026-02-10", merchant: "CONSULTING CLIENT", amount: 500, sourceDocument: "february_2026.pdf" },
+    { id: "dup-transfer", date: "2026-02-11", merchant: "Owner Transfer", amount: 250, sourceDocument: "february_2026.pdf" },
+    { id: "dup-transfer", date: "2026-02-12", merchant: "Owner Transfer", amount: 250, sourceDocument: "february_2026.pdf" },
     { id: "cursor-1", date: "2026-02-13", merchant: "CURSOR, AI POWERED IDE", amount: -20, sourceDocument: "february_2026.pdf" },
     { id: "unknown-1", date: "2026-02-14", merchant: "UNKNOWN VENDOR", amount: 5, side: "debit", sourceDocument: "february_2026.pdf" }
   ]);
@@ -410,7 +410,7 @@ function seedFinanceContext(dataRoot, validationOverride = {}) {
 }
 
 function testCfoStackBuildsEvidenceBoundLedger() {
-  const dataRoot = fs.mkdtempSync(path.join(os.tmpdir(), "azzco-cfo-ok-"));
+  const dataRoot = fs.mkdtempSync(path.join(os.tmpdir(), "vboard-cfo-ok-"));
   seedFinanceContext(dataRoot);
   const report = buildCfoStack(dataRoot);
 
@@ -433,10 +433,10 @@ function testCfoStackBuildsEvidenceBoundLedger() {
 
 function testKnownSaasClassifiers() {
   assert.strictEqual(buildCfoStack.name, "buildCfoStack");
-  const dataRoot = fs.mkdtempSync(path.join(os.tmpdir(), "azzco-cfo-saas-"));
+  const dataRoot = fs.mkdtempSync(path.join(os.tmpdir(), "vboard-cfo-saas-"));
   const ctx = path.join(dataRoot, "ops", "context");
   writeJson(path.join(ctx, "bank_transactions.json"), [
-    { id: "hostinger-1", date: "2026-05-01", merchant: "hostinger.com", amount: -9.99 },
+    { id: "cloud-host-1", date: "2026-05-01", merchant: "CLOUD HOST BASIC", amount: -9.99 },
     { id: "zoho-1", date: "2026-05-02", merchant: "ZOHO-ZOHO CORP", amount: -3.6 }
   ]);
   writeJson(path.join(ctx, "bank_statement_validation.json"), {
@@ -451,12 +451,12 @@ function testKnownSaasClassifiers() {
   const report = buildCfoStack(dataRoot);
   assert.strictEqual(report.ok, true);
   assert.strictEqual(report.validation.unclassifiedCount, 0);
-  assert.ok(report.expenseBreakdown.ranked.some((item) => item.account === "Expenses:Cloud:Hostinger"));
+  assert.ok(report.expenseBreakdown.ranked.some((item) => item.account === "Expenses:Cloud:VPS"));
   assert.ok(report.expenseBreakdown.ranked.some((item) => item.account === "Expenses:Software:Zoho"));
 }
 
 function testCfoStackFailsClosedOnBadValidation() {
-  const dataRoot = fs.mkdtempSync(path.join(os.tmpdir(), "azzco-cfo-blocked-"));
+  const dataRoot = fs.mkdtempSync(path.join(os.tmpdir(), "vboard-cfo-blocked-"));
   seedFinanceContext(dataRoot, {
     ok: false,
     declaredDebitsTotal: -31.59,
@@ -473,7 +473,7 @@ function testCfoStackFailsClosedOnBadValidation() {
 }
 
 function testCfoStackRejectsOkFlagWhenTotalsMismatch() {
-  const dataRoot = fs.mkdtempSync(path.join(os.tmpdir(), "azzco-cfo-mismatch-"));
+  const dataRoot = fs.mkdtempSync(path.join(os.tmpdir(), "vboard-cfo-mismatch-"));
   seedFinanceContext(dataRoot, {
     ok: true,
     declaredDebitsTotal: -31.59,
@@ -488,29 +488,29 @@ function testCfoStackRejectsOkFlagWhenTotalsMismatch() {
 }
 
 function testCfoStackRejectsOutputTraversal() {
-  const dataRoot = fs.mkdtempSync(path.join(os.tmpdir(), "azzco-cfo-traversal-"));
+  const dataRoot = fs.mkdtempSync(path.join(os.tmpdir(), "vboard-cfo-traversal-"));
   seedFinanceContext(dataRoot);
   assert.throws(() => buildCfoStack(dataRoot, { outputDir: "../outside" }), /PATH_OUTSIDE_DATA_ROOT/);
   assert.throws(() => financeStatus(dataRoot, { outputDir: "../outside" }), /PATH_OUTSIDE_DATA_ROOT/);
 }
 
-function testQontoImportFeedsCfoStack() {
-  const dataRoot = fs.mkdtempSync(path.join(os.tmpdir(), "azzco-qonto-import-"));
-  const reportPath = path.join(dataRoot, "reports", "qonto_receipt_reconcile_test.json");
+function testBankImportFeedsCfoStack() {
+  const dataRoot = fs.mkdtempSync(path.join(os.tmpdir(), "vboard-bank-import-"));
+  const reportPath = path.join(dataRoot, "reports", "bank_receipt_reconcile_test.json");
   writeJson(reportPath, {
     transactions: [
-      { id: "qonto-1", transaction_id: "tx-1", label: "M SIDY DIABE", amount: 500, side: "credit", currency: "EUR", settled_at: "2026-03-01T09:00:00Z" },
-      { id: "qonto-2", transaction_id: "tx-2", label: "RAILWAY", amount: 12.5, side: "debit", currency: "EUR", settled_at: "2026-03-02T09:00:00Z", attachment_ids: [] }
+      { id: "bank-1", transaction_id: "tx-1", label: "CONSULTING CLIENT", amount: 500, side: "credit", currency: "EUR", settled_at: "2026-03-01T09:00:00Z" },
+      { id: "bank-2", transaction_id: "tx-2", label: "RAILWAY", amount: 12.5, side: "debit", currency: "EUR", settled_at: "2026-03-02T09:00:00Z", attachment_ids: [] }
     ],
     decisions: [
-      { action: "attach", score: 0.91, transaction: { id: "qonto-2" }, receipt: { file: "receipts/railway.pdf" } }
+      { action: "attach", score: 0.91, transaction: { id: "bank-2" }, receipt: { file: "receipts/railway.pdf" } }
     ],
     uploads: [
-      { ok: true, transactionId: "qonto-2", file: "receipts/railway.pdf", idempotencyKey: "idem" }
+      { ok: true, transactionId: "bank-2", file: "receipts/railway.pdf", idempotencyKey: "idem" }
     ]
   });
 
-  const imported = importQontoReconciliation(dataRoot, reportPath, { trustQontoApi: true });
+  const imported = importBankReconciliation(dataRoot, reportPath, { trustBankApi: true });
   assert.strictEqual(imported.status, "ready");
   assert.strictEqual(imported.transactionCount, 2);
   assert.strictEqual(imported.invoiceMatchCount, 1);
@@ -523,18 +523,18 @@ function testQontoImportFeedsCfoStack() {
   assert.strictEqual(report.summary.periodNetMovement, 487.5);
 }
 
-function testQontoDebitOnlyImportFailsClosed() {
-  const dataRoot = fs.mkdtempSync(path.join(os.tmpdir(), "azzco-qonto-debit-only-"));
-  const reportPath = path.join(dataRoot, "reports", "qonto_receipt_reconcile_debit_only.json");
+function testBankDebitOnlyImportFailsClosed() {
+  const dataRoot = fs.mkdtempSync(path.join(os.tmpdir(), "vboard-bank-debit-only-"));
+  const reportPath = path.join(dataRoot, "reports", "bank_receipt_reconcile_debit_only.json");
   writeJson(reportPath, {
     transactions: [
-      { id: "qonto-1", transaction_id: "tx-1", label: "RAILWAY", amount: 12.5, side: "debit", currency: "EUR", settled_at: "2026-03-02T09:00:00Z" }
+      { id: "bank-1", transaction_id: "tx-1", label: "RAILWAY", amount: 12.5, side: "debit", currency: "EUR", settled_at: "2026-03-02T09:00:00Z" }
     ],
     decisions: [],
     uploads: []
   });
 
-  const imported = importQontoReconciliation(dataRoot, reportPath, { trustQontoApi: true });
+  const imported = importBankReconciliation(dataRoot, reportPath, { trustBankApi: true });
   assert.strictEqual(imported.status, "imported_debit_only");
   assert.strictEqual(imported.validation.ok, false);
   assert.strictEqual(imported.validation.scope, "debit_only_expense_reconciliation");
@@ -544,8 +544,8 @@ function testQontoDebitOnlyImportFailsClosed() {
   assert.ok(report.blockers.includes("BANK_VALIDATION_NOT_OK"));
 }
 
-async function testQontoFullPullFeedsCfoStack() {
-  const dataRoot = fs.mkdtempSync(path.join(os.tmpdir(), "azzco-qonto-pull-"));
+async function testBankFullPullFeedsCfoStack() {
+  const dataRoot = fs.mkdtempSync(path.join(os.tmpdir(), "vboard-bank-pull-"));
   writeJson(path.join(dataRoot, "ops", "context", "invoice_matches.json"), [
     { transactionId: "stale-old-id", invoicePath: "receipts/old.pdf" }
   ]);
@@ -566,7 +566,7 @@ async function testQontoFullPullFeedsCfoStack() {
       return {
         ok: true,
         status: 200,
-        text: async () => JSON.stringify({ transactions: [{ id: "credit-1", label: "M SIDY DIABE", amount: 700, side: "credit", currency: "EUR", settled_at: "2026-04-01T10:00:00Z" }], meta: {} })
+        text: async () => JSON.stringify({ transactions: [{ id: "credit-1", label: "CONSULTING CLIENT", amount: 700, side: "credit", currency: "EUR", settled_at: "2026-04-01T10:00:00Z" }], meta: {} })
       };
     }
     if (pathname.endsWith("/transactions") && side === "debit" && page === 1) {
@@ -579,7 +579,7 @@ async function testQontoFullPullFeedsCfoStack() {
     return { ok: true, status: 200, text: async () => JSON.stringify({ transactions: [], meta: {} }) };
   };
 
-  const pulled = await pullQontoSnapshot(dataRoot, { auth: "login:secret", fetchImpl, since: "2026-04-01T00:00:00Z" });
+  const pulled = await pullBankSnapshot(dataRoot, { auth: "login:secret", fetchImpl, since: "2026-04-01T00:00:00Z" });
   assert.strictEqual(pulled.status, "ready");
   assert.strictEqual(pulled.transactionCount, 2);
   assert.strictEqual(pulled.invoiceMatchCount, 1);
@@ -606,9 +606,9 @@ async function main() {
   testCfoStackRejectsOkFlagWhenTotalsMismatch();
   testCfoStackRejectsOutputTraversal();
   testKnownSaasClassifiers();
-  testQontoImportFeedsCfoStack();
-  testQontoDebitOnlyImportFailsClosed();
-  await testQontoFullPullFeedsCfoStack();
+  testBankImportFeedsCfoStack();
+  testBankDebitOnlyImportFailsClosed();
+  await testBankFullPullFeedsCfoStack();
   process.stdout.write("All tests passed\n");
 }
 

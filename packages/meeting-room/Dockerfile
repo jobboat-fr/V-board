@@ -1,6 +1,6 @@
 # ─────────────────────────────────────────────────────────────────
 # V-Board — Meeting Room container
-# Standalone FastAPI server for the Hermes meeting-room adapter.
+# Standalone FastAPI server for the V-Board meeting-room adapter.
 # Port 8790 — bound to 127.0.0.1 by default (nginx terminates TLS).
 #
 # Build (from v-board repo root):
@@ -23,7 +23,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # ── Non-root user ─────────────────────────────────────────────────
-RUN useradd -u 1000 -m -s /bin/sh hermes
+RUN useradd -u 1000 -m -s /bin/sh vboard
 WORKDIR /app
 
 # ── Python deps (cached layer) ────────────────────────────────────
@@ -38,10 +38,10 @@ COPY adapters/ ./adapters/
 # ── Runtime ───────────────────────────────────────────────────────
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONPATH=/app
-ENV AZZCO_DATA_ROOT=/workspace
+ENV VBOARD_DATA_ROOT=/workspace
 ENV MEETING_ROOM_REQUIRE_TOKEN=true
 
-USER hermes
+USER vboard
 EXPOSE 8790
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \

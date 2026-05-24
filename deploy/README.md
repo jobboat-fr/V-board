@@ -1,33 +1,33 @@
 # Deploy Guide
 
-## Option A — Single Server, Docker Compose (recommended)
+## Option A â€” Single Server, Docker Compose (recommended)
 
 ### First-Time Setup
 
 ```bash
 # 1. Clone the repo on your server
-git clone https://github.com/azzco-labs/v-board.git /opt/v-board
+git clone https://github.com/your-org/v-board.git /opt/v-board
 cd /opt/v-board
 
 # 2. Configure
 cp .env.example .env
-nano .env   # fill in AZZCO_COUNCIL_TOKEN, AZZCO_API_TOKEN, AZZCO_OWNER_WHATSAPP
+nano .env   # fill in VBOARD_COUNCIL_TOKEN, VBOARD_API_TOKEN, VBOARD_OWNER_WHATSAPP
 
 # 3. Run the setup script
-bash deploy/install-hostinger.sh
+bash deploy/install-front-desk.sh
 
 # 4. Mount your crontab (runner container)
-cp packages/runner/crontab.example /etc/azzco-crontab
+cp packages/runner/crontab.example /etc/vboard-crontab
 # Then add to your docker-compose.yml override:
 # services:
 #   runner:
 #     volumes:
-#       - /etc/azzco-crontab:/etc/azzco-crontab:ro
+#       - /etc/vboard-crontab:/etc/vboard-crontab:ro
 ```
 
-### CI/CD — GitHub Actions Secrets
+### CI/CD â€” GitHub Actions Secrets
 
-Add these secrets at: **Settings → Secrets and variables → Actions → New repository secret**
+Add these secrets at: **Settings â†’ Secrets and variables â†’ Actions â†’ New repository secret**
 
 | Secret | Value |
 |---|---|
@@ -42,7 +42,7 @@ Add these secrets at: **Settings → Secrets and variables → Actions → New r
 ssh-keygen -t ed25519 -C "github-actions-deploy" -f ~/.ssh/id_ed25519_ci_deploy -N ""
 
 # Add public key to server's authorized_keys
-ssh root@YOUR_SERVER_IP \
+ssh deploy@YOUR_SERVER_IP \
   "echo '$(cat ~/.ssh/id_ed25519_ci_deploy.pub)' >> ~/.ssh/authorized_keys"
 
 # Put the PRIVATE key into GitHub secret as DEPLOY_SSH_KEY
@@ -50,45 +50,45 @@ ssh root@YOUR_SERVER_IP \
 
 ---
 
-## Option B — Two Servers, Bare Node
+## Option B â€” Two Servers, Bare Node
 
-For deployments across two separate VPS instances (e.g. original Hostinger + OVH design).
+For deployments across two separate VPS instances (e.g. original front desk server + back office server design).
 
-### Server 1 — ops-core + runner
+### Server 1 â€” ops-core + runner
 
 ```bash
-scp deploy/install-hostinger.sh root@SERVER1_IP:~/
-ssh root@SERVER1_IP
+scp deploy/install-front-desk.sh deploy@SERVER1_IP:~/
+ssh deploy@SERVER1_IP
 # Edit to set VBOARD_REPO or install manually
-bash install-hostinger.sh
+bash install-front-desk.sh
 ```
 
-### Server 2 — council
+### Server 2 â€” council
 
 ```bash
-scp deploy/install-ovh.sh ubuntu@SERVER2_IP:~/
+scp deploy/install-back-office.sh ubuntu@SERVER2_IP:~/
 ssh ubuntu@SERVER2_IP
-sudo bash install-ovh.sh
+sudo bash install-back-office.sh
 
 # Fill in env files
-sudo nano /etc/azzco-council.env       # AZZCO_COUNCIL_TOKEN + HUGGINGFACE_TOKEN
-sudo nano /etc/azzco-ops-core.env      # AZZCO_API_TOKEN
+sudo nano /etc/vboard-council.env       # VBOARD_COUNCIL_TOKEN + LLM_API_TOKEN
+sudo nano /etc/vboard-ops-core.env      # VBOARD_API_TOKEN
 
 # Start services
-sudo systemctl start azzco-council
-sudo systemctl start azzco-ops-core
-sudo systemctl status azzco-council
-sudo systemctl status azzco-ops-core
+sudo systemctl start vboard-council
+sudo systemctl start vboard-ops-core
+sudo systemctl status vboard-council
+sudo systemctl status vboard-ops-core
 ```
 
 For two-server CI/CD, add additional secrets:
 
 | Secret | Value |
 |---|---|
-| `HOSTINGER_HOST` | Server 1 IP |
-| `HOSTINGER_SSH_KEY` | SSH private key for server 1 |
-| `OVH_HOST` | Server 2 IP |
-| `OVH_SSH_KEY` | SSH private key for server 2 |
+| `FRONT_DESK_HOST` | Server 1 IP |
+| `FRONT_DESK_SSH_KEY` | SSH private key for server 1 |
+| `BACK_OFFICE_HOST` | Server 2 IP |
+| `BACK_OFFICE_SSH_KEY` | SSH private key for server 2 |
 
 ---
 
@@ -115,17 +115,18 @@ docker compose ps
 rsync -az --exclude=node_modules --exclude=.secrets \
   -e "ssh -i ~/.ssh/id_ed25519" \
   packages/ops-core/ \
-  root@SERVER1_IP:/opt/azzco-ops-core/
+  deploy@SERVER1_IP:/opt/vboard-ops-core/
 
 # Deploy council to server 2
 rsync -az --exclude=node_modules \
-  -e "ssh -i ~/.ssh/id_ed25519_ovh" \
+  -e "ssh -i ~/.ssh/id_ed25519_back-office" \
   packages/council/ \
-  ubuntu@SERVER2_IP:/opt/azzco-council/core/
+  ubuntu@SERVER2_IP:/opt/vboard-council/core/
 
 ssh ubuntu@SERVER2_IP "
-  cd /opt/azzco-council/core
+  cd /opt/vboard-council/core
   node scripts/smoke_test.js && node scripts/hardening_test.js
-  sudo systemctl restart azzco-council
+  sudo systemctl restart vboard-council
 "
 ```
+

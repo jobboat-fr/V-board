@@ -3,22 +3,22 @@
 const http = require("http");
 const crypto = require("crypto");
 const fs = require("fs");
-const { AzzcoCouncilEngine } = require("./index");
+const { VBoardCouncilEngine } = require("./index");
 const { BudgetStore } = require("./ops/budget_store");
 const { RouteLogger } = require("./ops/route_logger");
 
-const engine = new AzzcoCouncilEngine();
+const engine = new VBoardCouncilEngine();
 const budgetStore = new BudgetStore();
 const routeLogger = new RouteLogger();
-const host = process.env.AZZCO_COUNCIL_HOST || "127.0.0.1";
-const port = Number(process.env.AZZCO_COUNCIL_PORT || 8787);
-const apiToken = process.env.AZZCO_COUNCIL_TOKEN || "";
+const host = process.env.VBOARD_COUNCIL_HOST || "127.0.0.1";
+const port = Number(process.env.VBOARD_COUNCIL_PORT || 8787);
+const apiToken = process.env.VBOARD_COUNCIL_TOKEN || "";
 
-// Work-order dedup cache — prevents repeated calls for the same request
+// Work-order dedup cache â€” prevents repeated calls for the same request
 // from burning budget. TTL is category-dependent.
 const dedupCache = new Map();
 const DEDUP_TTL_MS = {
-  mail_labeling: 10 * 60 * 1000,   // 10 min — most loop-prone
+  mail_labeling: 10 * 60 * 1000,   // 10 min â€” most loop-prone
   mail_triage: 10 * 60 * 1000,
   lead_scout: 15 * 60 * 1000,
   default: 5 * 60 * 1000
@@ -89,7 +89,12 @@ function send(res, statusCode, data) {
 }
 
 function isAuthorized(req) {
-  if (!apiToken) return true;
+  if (!apiToken) {
+    // Fail closed in production â€” token must be set
+    if (process.env.NODE_ENV === "production") return false;
+    // In development/test, allow unauthenticated access with a warning
+    return true;
+  }
   const header = req.headers.authorization || "";
   return header === `Bearer ${apiToken}`;
 }
@@ -97,7 +102,7 @@ function isAuthorized(req) {
 const server = http.createServer(async (req, res) => {
   try {
     if (req.method === "GET" && req.url === "/health") {
-      send(res, 200, { ok: true, service: "azzco-council-core", auth: apiToken ? "required" : "off", dedup_cache_size: dedupCache.size });
+      send(res, 200, { ok: true, service: "vboard-council-core", auth: apiToken ? "required" : "off", dedup_cache_size: dedupCache.size });
       return;
     }
 
@@ -156,5 +161,6 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(port, host, () => {
-  console.log(`azzco-council-core listening on http://${host}:${port}`);
+  console.log(`vboard-council-core listening on http://${host}:${port}`);
 });
+

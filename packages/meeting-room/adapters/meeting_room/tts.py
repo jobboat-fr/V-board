@@ -1,18 +1,11 @@
 """
-Text-to-Speech — ElevenLabs voice synthesis.
+Text-to-Speech â€” voice provider voice synthesis.
 
 Takes text + advisor_id and returns mp3 audio bytes.
 Each advisor role has a dedicated voice so meeting participants
 can distinguish who is speaking.
 
-Default voices (all ElevenLabs stock voices, no custom cloning required):
-  cfo     → Rachel  (JBFqnCBsd6RMkjVDRZzb) — clear, authoritative
-  cto     → Adam    (pNInz6obpgDQGcFmaJgB) — calm, technical
-  coo     → Domi    (AZnzlk1XvdvUeBnXmlld) — decisive, operational
-  crm     → Elli    (MF3mGyEYCl7XYWbV9V6O) — warm, approachable
-  legal   → Josh    (TxGEqnHWrfWFTfGW9XjX) — measured, precise
-  product → Bella   (EXAVITQu4vr4xnSDxMaL) — energetic, user-focused
-  chair   → Antoni  (ErXwobaYiN019PkySvjV) — composed, neutral
+Default voices are provider-neutral aliases. Override per advisor with MEETING_VOICE_{ADVISOR_ID}.
 """
 
 import os
@@ -22,20 +15,22 @@ from typing import TypedDict
 
 logger = logging.getLogger("meeting_room.tts")
 
-ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY", "")
+VOICE_API_KEY = os.getenv("VOICE_API_KEY", "")
+VOICE_API_BASE_URL = os.getenv("VOICE_API_BASE_URL", "https://voice-provider.example/v1")
+VOICE_API_KEY_HEADER = os.getenv("VOICE_API_KEY_HEADER", "Authorization")
 
-# Default voice map — override per advisor via MEETING_VOICE_{ADVISOR_ID} env vars
+# Default voice map â€” override per advisor via MEETING_VOICE_{ADVISOR_ID} env vars
 DEFAULT_VOICES: dict[str, str] = {
-    "cfo":     os.getenv("MEETING_VOICE_CFO",     "JBFqnCBsd6RMkjVDRZzb"),  # Rachel
-    "cto":     os.getenv("MEETING_VOICE_CTO",     "pNInz6obpgDQGcFmaJgB"),  # Adam
-    "coo":     os.getenv("MEETING_VOICE_COO",     "AZnzlk1XvdvUeBnXmlld"),  # Domi
-    "crm":     os.getenv("MEETING_VOICE_CRM",     "MF3mGyEYCl7XYWbV9V6O"),  # Elli
-    "legal":   os.getenv("MEETING_VOICE_LEGAL",   "TxGEqnHWrfWFTfGW9XjX"),  # Josh
-    "product": os.getenv("MEETING_VOICE_PRODUCT", "EXAVITQu4vr4xnSDxMaL"),  # Bella
-    "chair":   os.getenv("MEETING_VOICE_CHAIR",   "ErXwobaYiN019PkySvjV"),  # Antoni
+    "cfo":     os.getenv("MEETING_VOICE_CFO",     "voice-cfo-default"),
+    "cto":     os.getenv("MEETING_VOICE_CTO",     "voice-cto-default"),
+    "coo":     os.getenv("MEETING_VOICE_COO",     "voice-coo-default"),
+    "crm":     os.getenv("MEETING_VOICE_CRM",     "voice-crm-default"),
+    "legal":   os.getenv("MEETING_VOICE_LEGAL",   "voice-legal-default"),
+    "product": os.getenv("MEETING_VOICE_PRODUCT", "voice-product-default"),
+    "chair":   os.getenv("MEETING_VOICE_CHAIR",   "voice-chair-default"),
 }
 
-# ElevenLabs pricing: ~$0.30 per 1000 chars (Starter plan)
+# Default estimate for paid voice synthesis pricing
 _COST_PER_CHAR = 0.00030
 
 
@@ -55,22 +50,22 @@ async def synthesize(
     advisor_id: str = "cfo",
     voice_id: str | None = None,
     output_format: str = "mp3_44100_128",
-    model_id: str = "eleven_turbo_v2_5",
+    model_id: str = "voice-default-fast",
 ) -> TTSResult:
     """
-    Synthesize text to speech using ElevenLabs.
+    Synthesize text to speech using voice provider.
 
     Args:
         text:          Text to synthesize (max 800 chars recommended)
-        advisor_id:    Advisor role — selects default voice if voice_id not set
-        voice_id:      Override voice ID (ElevenLabs voice ID)
+        advisor_id:    Advisor role â€” selects default voice if voice_id not set
+        voice_id:      Override voice ID (voice provider voice ID)
         output_format: Audio format (mp3_44100_128 | pcm_16000 | pcm_22050)
-        model_id:      ElevenLabs model (eleven_turbo_v2_5 is fast + multilingual)
+        model_id:      voice provider model identifier
 
     Returns TTSResult with audio bytes, cost, and metadata.
     """
-    if not ELEVENLABS_API_KEY:
-        raise RuntimeError("ELEVENLABS_API_KEY not set — TTS unavailable")
+    if not VOICE_API_KEY:
+        raise RuntimeError("VOICE_API_KEY not set â€” TTS unavailable")
 
     effective_voice = voice_id or DEFAULT_VOICES.get(advisor_id, DEFAULT_VOICES["cfo"])
     chars = len(text)
@@ -81,12 +76,15 @@ async def synthesize(
     except ImportError:
         raise RuntimeError("httpx not installed. Run: pip install httpx")
 
-    url = f"https://api.elevenlabs.io/v1/text-to-speech/{effective_voice}"
+    url = f"{VOICE_API_BASE_URL.rstrip('/')}/text-to-speech/{effective_voice}"
     headers = {
-        "xi-api-key": ELEVENLABS_API_KEY,
         "Content-Type": "application/json",
         "Accept": _output_format_to_mime(output_format),
     }
+    if VOICE_API_KEY_HEADER.lower() == "authorization":
+        headers["Authorization"] = f"Bearer {VOICE_API_KEY}"
+    else:
+        headers[VOICE_API_KEY_HEADER] = VOICE_API_KEY
     body = {
         "text": text,
         "model_id": model_id,
@@ -103,13 +101,13 @@ async def synthesize(
         resp = await client.post(url, headers=headers, json=body)
         if not resp.is_success:
             err_text = resp.text[:400]
-            raise RuntimeError(f"ElevenLabs TTS failed {resp.status_code}: {err_text}")
+            raise RuntimeError(f"voice provider TTS failed {resp.status_code}: {err_text}")
         audio = resp.content
 
     elapsed_ms = int((time.monotonic() - started) * 1000)
     cost = round(chars * _COST_PER_CHAR, 6)
 
-    logger.debug("tts: %d chars → %d bytes in %dms (voice=%s)", chars, len(audio), elapsed_ms, effective_voice)
+    logger.debug("tts: %d chars â†’ %d bytes in %dms (voice=%s)", chars, len(audio), elapsed_ms, effective_voice)
 
     return TTSResult(
         audio=audio,
@@ -123,7 +121,7 @@ async def synthesize(
 
 
 def is_configured() -> bool:
-    return bool(ELEVENLABS_API_KEY)
+    return bool(VOICE_API_KEY)
 
 
 def get_voice_id(advisor_id: str) -> str:
@@ -138,3 +136,5 @@ def _output_format_to_mime(fmt: str) -> str:
     if fmt.startswith("ogg"):
         return "audio/ogg"
     return "audio/mpeg"
+
+

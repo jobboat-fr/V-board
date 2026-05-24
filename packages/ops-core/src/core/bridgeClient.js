@@ -56,8 +56,8 @@ async function routeOrBridge(input, config) {
       decision: {
         action: route.route === "runner_local" ? "runner_handle_locally" : "runner_review_first",
         owner_approval_required: route.policy.owner_approval_required,
-        openclaw_allowed_actions: [],
-        openclaw_blocked_actions: []
+        agent_runtime_allowed_actions: [],
+        agent_runtime_blocked_actions: []
       },
       production_guard: {
         runner_executes: true,

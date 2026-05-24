@@ -1,14 +1,14 @@
 #!/bin/sh
 # run_delegated_job.sh — container-native entry point (no docker exec)
-# Runs directly inside the runner container. All paths resolved via AZZCO_WORKSPACE.
+# Runs directly inside the runner container. All paths resolved via VBOARD_WORKSPACE.
 set -eu
 
-WORKSPACE="${AZZCO_WORKSPACE:-/workspace}"
-OWNER="${AZZCO_OWNER_WHATSAPP:?AZZCO_OWNER_WHATSAPP is required}"
+WORKSPACE="${VBOARD_WORKSPACE:-/workspace}"
+OWNER="${VBOARD_OWNER_WHATSAPP:?VBOARD_OWNER_WHATSAPP is required}"
 CATEGORY="${1:-owner_decision_meeting}"
 URGENCY="${2:-P2}"
 
-LOG_DIR="${AZZCO_LOG_DIR:-$WORKSPACE/ops/logs/runner}"
+LOG_DIR="${VBOARD_LOG_DIR:-$WORKSPACE/ops/logs/runner}"
 mkdir -p "$LOG_DIR"
 
 ts="$(date -u +%Y%m%dT%H%M%SZ)"
@@ -22,10 +22,10 @@ report_archive_path="$report_archive_dir/${run_id}.md"
 mkdir -p "$report_archive_dir"
 
 status="ok"
-if ! timeout 720 node "$WORKSPACE/bin/azzco_delegate_and_render.js" "$CATEGORY" "$URGENCY" >"$report_file" 2>"$err_file"; then
+if ! timeout 720 node "$WORKSPACE/bin/vboard_delegate_and_render.js" "$CATEGORY" "$URGENCY" >"$report_file" 2>"$err_file"; then
   status="blocked"
   {
-    echo "AZZCO ${CATEGORY} - BLOCKED"
+    echo "VBOARD ${CATEGORY} - BLOCKED"
     echo "Generated: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
     echo "Urgency: $URGENCY"
     echo ""
@@ -44,7 +44,7 @@ fi
 cp "$report_file" "$report_archive_path"
 
 delivery_status="delivered"
-if ! TARGET="$OWNER" node "$WORKSPACE/bin/azzco_send_whatsapp_stdin.js" <"$report_file"; then
+if ! TARGET="$OWNER" node "$WORKSPACE/bin/vboard_send_whatsapp_stdin.js" <"$report_file"; then
   delivery_status="delivery_failed"
   status="blocked"
 fi
@@ -58,8 +58,8 @@ REPORT_PATH="$report_archive_path" \
 node - <<'NODE'
 const fs = require("fs");
 const path = require("path");
-const root = path.join(process.env.AZZCO_WORKSPACE || "/workspace", "ops/runner");
-const reportsRoot = path.join(process.env.AZZCO_WORKSPACE || "/workspace", "reports");
+const root = path.join(process.env.VBOARD_WORKSPACE || "/workspace", "ops/runner");
+const reportsRoot = path.join(process.env.VBOARD_WORKSPACE || "/workspace", "reports");
 fs.mkdirSync(root, { recursive: true });
 fs.mkdirSync(reportsRoot, { recursive: true });
 const status = {
@@ -80,10 +80,10 @@ const line = `- ${status.generatedAt} | ${status.category} | ${status.urgency} |
 let existing = "";
 try { existing = fs.readFileSync(indexPath, "utf8"); } catch {}
 if (!existing.includes(status.runId)) {
-  fs.writeFileSync(indexPath, `${existing || "# AZZCO Report Archive\n\n"}${line}`);
+  fs.writeFileSync(indexPath, `${existing || "# VBOARD Report Archive\n\n"}${line}`);
 }
 NODE
 
-node "$WORKSPACE/bin/azzco_runner_status_summary.js" >/dev/null 2>&1 || true
+node "$WORKSPACE/bin/vboard_runner_status_summary.js" >/dev/null 2>&1 || true
 
 echo "$run_id $CATEGORY $URGENCY $status $delivery_status"

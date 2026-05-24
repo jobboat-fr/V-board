@@ -30,7 +30,7 @@ function normalizeLead(input = {}, signals = {}) {
     sector,
     location,
     need,
-    source: clean(input.source || source.source || "openclaw"),
+    source: clean(input.source || source.source || "agent_runtime"),
     owner: Boolean(input.owner)
   };
 }
@@ -60,7 +60,7 @@ function classifyMail(request = {}, lead = {}, signals = {}) {
   const hasLead = lead.email || lead.website || lead.name !== "Unknown prospect";
   const sector = lead.sector || signals.sector || "unknown";
   const hasPriorThread = Boolean(email.threadId || email.inReplyTo || request.previousConversation || request.threadSummary);
-  const isOutbound = request.direction === "outbound" || request.channel === "openclaw" || /send|campaign|outreach|cold/.test(text);
+  const isOutbound = request.direction === "outbound" || request.channel === "agent_runtime" || /send|campaign|outreach|cold/.test(text);
   const coldEvidence = isOutbound && hasLead && !hasPriorThread;
   const concretePain = (signals.painPoints || []).some((point) => [
     "manual_operations",
@@ -146,7 +146,7 @@ function buildColdEmailDraft(lead, signals, mailPolicy = null) {
     ? [
         `Hello,`,
         ``,
-        `I am contacting you from AZZ&CO LABS after reviewing ${lead.website || "your public presence"}.`,
+        `I am contacting you from Example Company after reviewing ${lead.website || "your public presence"}.`,
         `We help small teams save time and convert more opportunities with practical AI, automation, CRM, and funnel systems.`,
         ``,
         `For ${lead.name}, the most relevant starting point seems to be: ${offer}.`,
@@ -155,12 +155,12 @@ function buildColdEmailDraft(lead, signals, mailPolicy = null) {
         `If this is not relevant, just reply "no" and I will not follow up.`,
         ``,
         `Best regards,`,
-        `AZZ&CO LABS`
+        `Example Company`
       ].join("\n")
     : [
         `Bonjour,`,
         ``,
-        `Je me permets de vous contacter depuis AZZ&CO LABS après avoir consulté ${lead.website || "vos informations publiques"}.`,
+        `Je me permets de vous contacter depuis Example Company après avoir consulté ${lead.website || "vos informations publiques"}.`,
         `Nous aidons les petites équipes à gagner du temps et à convertir davantage d'opportunités avec des systèmes IA, automatisation, CRM et tunnels de conversion.`,
         ``,
         `Pour ${lead.name}, le point de départ le plus pertinent semble être : ${offer}.`,
@@ -169,7 +169,7 @@ function buildColdEmailDraft(lead, signals, mailPolicy = null) {
         `Si ce n'est pas pertinent, répondez simplement "non" et je ne relancerai pas.`,
         ``,
         `Cordialement,`,
-        `AZZ&CO LABS`
+        `Example Company`
       ].join("\n");
 
   return {
@@ -189,14 +189,14 @@ function buildColdEmailDraft(lead, signals, mailPolicy = null) {
 function buildCrmUpdate(lead, signals, route) {
   const stage = signals.azzing.decision === "strong_pick" ? "qualified_draft_ready" : "research_needed";
   const nextAction = lead.email
-    ? "Owner review: approve exact email draft before OpenClaw sends."
+    ? "Owner review: approve exact email draft before the agent runtime sends."
     : "Find public business email or use contact form; do not guess an address.";
 
   return {
     lead_id_hint: lead.website || lead.email || lead.name,
     stage,
     priority: route.urgency === "P0" || route.urgency === "P1" ? "high" : signals.azzing.decision === "strong_pick" ? "medium" : "low",
-    tags: ["azzco", route.category, lead.sector, ...signals.painPoints].filter(Boolean),
+    tags: ["vboard", route.category, lead.sector, ...signals.painPoints].filter(Boolean),
     fields: {
       company: lead.name,
       website: lead.website || null,
@@ -215,12 +215,12 @@ function buildCrmUpdate(lead, signals, route) {
   };
 }
 
-function buildOpenClawHandoff({ route, lead, signals, draft, crmUpdate, mailPolicy }) {
+function buildAgentRuntimeHandoff({ route, lead, signals, draft, crmUpdate, mailPolicy }) {
   const canSend = Boolean(lead.email) && Boolean(mailPolicy?.auto_send_allowed);
   const approvalRequired = Boolean(mailPolicy?.approval_required || route.requireOwnerApproval);
   const emailAction = mailPolicy?.label === "hot_mail" ? "request_hot_mail_approval" : "send_cold_email";
   return {
-    target_system: "openclaw",
+    target_system: "agent-runtime",
     channel_actions: [
       {
         channel: "owner_whatsapp",
@@ -285,7 +285,7 @@ function buildLeadWorkflow({ request, route }) {
     offer: bestOffer(signals),
     crm_update: crmUpdate,
     cold_email_draft: draft,
-    openclaw_handoff: buildOpenClawHandoff({ route, lead, signals, draft, crmUpdate, mailPolicy })
+    agent_runtime_handoff: buildAgentRuntimeHandoff({ route, lead, signals, draft, crmUpdate, mailPolicy })
   };
 }
 
@@ -365,10 +365,10 @@ function buildCommunicationWorkflow({ request, route }) {
     response_policy: {
       can_answer_directly: !(restricted && !owner),
       owner_escalation_required: restricted && !owner,
-      refusal_text: "I cannot share AZZ&CO LABS internal, legal, accounting, or confidential information here. Please contact Azer Rached directly for authorization."
+      refusal_text: "I cannot share Example Company internal, legal, accounting, or confidential information here. Please contact the configured owner directly for authorization."
     },
-    openclaw_handoff: {
-      target_system: "openclaw",
+    agent_runtime_handoff: {
+      target_system: "agent-runtime",
       channel_actions: channelActions
     }
   };
@@ -388,8 +388,8 @@ function buildWorkflow({ request, route }) {
     kind: "generic_work_packet",
     workflow: route.category,
     signals: buildCompanySignals(request, route),
-    openclaw_handoff: {
-      target_system: "openclaw",
+    agent_runtime_handoff: {
+      target_system: "agent-runtime",
       channel_actions: []
     }
   };

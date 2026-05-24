@@ -22,7 +22,7 @@ const LOCAL_CATEGORIES = new Set([
 const RESTRICTED_TERMS = [
   "bank", "invoice", "receipt", "tax", "urssaf", "dsn", "payroll", "legal",
   "statuts", "contract", "secret", "token", "api key", "password", "internal",
-  "confidential", "accounting", "fiscal", "social", "kbis", "rbe", "qonto"
+  "confidential", "accounting", "fiscal", "social", "kbis", "rbe", "bank"
 ];
 
 const COMMITMENT_TERMS = [

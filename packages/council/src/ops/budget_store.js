@@ -23,11 +23,11 @@ function blankWindowState() {
 
 function providerForModel(model = "") {
   const value = String(model || "");
-  if (value.startsWith("together/")) return "together";
-  if (/bart|roberta|distilbart|facebook\/|cardiffnlp\/|SamLowe\//i.test(value)) return "huggingface";
+  if (value.startsWith("fallback/")) return "fallback";
+  if (/bart|roberta|distilbart|classifier\//i.test(value)) return "remote";
   if (value.startsWith("local/") || value.startsWith("open-source/")) return "local";
-  if (value.startsWith("openai/gpt-oss")) return "huggingface";
-  if (value.startsWith("openai/")) return "openai";
+  if (value.startsWith("remote/default")) return "remote";
+  if (value.startsWith("remote/")) return "remote";
   return "other";
 }
 
@@ -42,7 +42,7 @@ function normalizeWindowState(state = {}) {
 
 class BudgetStore {
   constructor({
-    filePath = process.env.AZZCO_BUDGET_STATE_PATH || path.join(process.cwd(), "data", "budget_state.json")
+    filePath = process.env.VBOARD_BUDGET_STATE_PATH || path.join(process.cwd(), "data", "budget_state.json")
   } = {}) {
     this.filePath = filePath;
   }
@@ -141,3 +141,5 @@ module.exports = {
   todayKey,
   monthKey
 };
+
+

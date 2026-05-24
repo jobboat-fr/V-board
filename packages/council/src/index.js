@@ -13,7 +13,7 @@ const { evaluateDealRoom } = require("./deal_room/deal_room");
 const { buildWorkOrder } = require("./work_orders/work_order_kernel");
 const { safeId } = require("./utils/token_estimator");
 
-class AzzcoCouncilEngine {
+class VBoardCouncilEngine {
   constructor({
     router = new TaskRouter(),
     runtime = new CouncilRuntime(),
@@ -28,7 +28,7 @@ class AzzcoCouncilEngine {
 
   async handle(request = {}) {
     if (!request.prompt) throw new Error("request.prompt is required");
-    const runId = request.runId || safeId("azzco");
+    const runId = request.runId || safeId("vboard");
     const route = this.router.classify(request);
     const budget = this.costGuard.evaluate({ route, request, runId });
     route.budget = budget;
@@ -53,10 +53,10 @@ class AzzcoCouncilEngine {
     });
 
     const council = await this.runtime.run({ request, route, workflow, runId });
-    const allowedActions = workflow?.openclaw_handoff?.channel_actions
+    const allowedActions = workflow?.agent_runtime_handoff?.channel_actions
       ?.filter((action) => action.allowed)
       .map((action) => `${action.channel}:${action.action}`) || [];
-    const blockedActions = workflow?.openclaw_handoff?.channel_actions
+    const blockedActions = workflow?.agent_runtime_handoff?.channel_actions
       ?.filter((action) => !action.allowed)
       .map((action) => `${action.channel}:${action.action}`) || [];
 
@@ -102,7 +102,7 @@ class AzzcoCouncilEngine {
 }
 
 module.exports = {
-  AzzcoCouncilEngine,
+  VBoardCouncilEngine,
   TaskRouter,
   CouncilRuntime,
   buildWorkflow,
@@ -113,3 +113,4 @@ module.exports = {
   MODEL_REGISTRY,
   TASK_MATRIX
 };
+

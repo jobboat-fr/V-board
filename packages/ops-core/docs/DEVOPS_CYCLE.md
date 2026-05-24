@@ -12,7 +12,7 @@ npm run doctor
 ## Build
 
 ```bash
-docker build -t azzco/ops-core:local .
+docker build -t vboard/ops-core:local .
 ```
 
 ## Deploy Shape
@@ -22,7 +22,7 @@ Recommended:
 1. Push to GitHub.
 2. CI runs syntax, tests, doctor.
 3. Build Docker image.
-4. Deploy to Hostinger/OVH with separate env files.
+4. Deploy to front desk/back office with separate env files.
 5. Run smoke test:
    - `/health`
    - `/v1/route` cold case
@@ -36,9 +36,9 @@ Do not release if:
 - routing tests fail
 - file path traversal guard fails
 - API auth is not configured in production
-- OVH bridge token is missing on OVH-required flows
+- back office bridge token is missing on back office-required flows
 - hot mail returns auto-send
-- OVH is able to send external communications
+- back office is able to send external communications
 
 ## Production Monitors
 

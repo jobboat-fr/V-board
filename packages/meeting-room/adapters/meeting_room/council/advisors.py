@@ -6,7 +6,7 @@ Each advisor has:
   - name:        display name
   - specialty:   human-readable domain description
   - color:       hex color for UI rendering
-  - voice_id:    ElevenLabs voice ID
+  - voice_id:    voice provider voice ID
   - triggers:    keywords that signal this advisor is relevant
 
 These are the four default roles shipped with the OSS contribution.
@@ -36,7 +36,7 @@ ADVISORS: dict[str, AdvisorConfig] = {
         "triggers":  [
             "budget", "cost", "coût", "revenue", "revenu", "invoice", "facture",
             "roi", "margin", "marge", "cash flow", "trésorerie", "burn rate",
-            "pricing", "devis", "quote", "bank", "qonto", "dépense", "spend",
+            "pricing", "devis", "quote", "bank", "bank", "dépense", "spend",
         ],
     },
     "cto": {

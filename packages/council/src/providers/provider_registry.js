@@ -1,20 +1,20 @@
 "use strict";
 
 const { MockProvider } = require("./mock_provider");
-const { TogetherProvider } = require("./together_provider");
-const { HuggingFaceChatProvider } = require("./huggingface_chat_provider");
+const { FallbackChatProvider } = require("./fallback_chat_provider");
+const { RemoteChatProvider } = require("./remote_chat_provider");
 
 class ProviderRegistry {
-  constructor({ mode = process.env.AZZCO_LIVE_PROVIDER_MODE || "mock" } = {}) {
+  constructor({ mode = process.env.VBOARD_LIVE_PROVIDER_MODE || "mock" } = {}) {
     this.mode = mode;
   }
 
   create() {
-    if (this.mode === "huggingface" || this.mode === "hf" || this.mode === "api") {
-      return new HuggingFaceChatProvider();
+    if (this.mode === "remote" || this.mode === "api") {
+      return new RemoteChatProvider();
     }
-    if (this.mode === "together") {
-      return new TogetherProvider();
+    if (this.mode === "fallback") {
+      return new FallbackChatProvider();
     }
     return new MockProvider();
   }

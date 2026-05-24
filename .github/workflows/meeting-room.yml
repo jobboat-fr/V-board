@@ -69,12 +69,12 @@ jobs:
           python -m pytest tests/ -q -o addopts=''
         env:
           PYTHONPATH: .
-          ANTHROPIC_API_KEY: ""
-          OPENAI_API_KEY: ""
-          GOOGLE_API_KEY: ""
-          GROQ_API_KEY: ""
-          ELEVENLABS_API_KEY: ""
-          TAVUS_API_KEY: ""
+          PRIMARY_LLM_API_KEY: ""
+          REVIEWER_LLM_API_KEY: ""
+          CHAIR_LLM_API_KEY: ""
+          STT_API_KEY: ""
+          VOICE_API_KEY: ""
+          AVATAR_API_KEY: ""
 
   # ── Container build + smoke test ─────────────────────────────────────────────
   container:

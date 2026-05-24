@@ -64,13 +64,13 @@ function blockAction(action, reason) {
     ...action,
     allowed: false,
     approval_required: true,
-    blocked_reason: reason || action.blocked_reason || "Blocked by AZZCO safety gates."
+    blocked_reason: reason || action.blocked_reason || "Blocked by VBOARD safety gates."
   };
 }
 
 function enforceSafetyGates({ request = {}, route = {}, workflow = {}, budget = {} } = {}) {
   const safety = evaluateSafetyGates({ request, route, workflow, budget });
-  const handoff = workflow.openclaw_handoff || { target_system: "openclaw", channel_actions: [] };
+  const handoff = workflow.agent_runtime_handoff || { target_system: "agent-runtime", channel_actions: [] };
   const actions = handoff.channel_actions || [];
 
   const enforcedActions = actions.map((action) => {
@@ -95,7 +95,7 @@ function enforceSafetyGates({ request = {}, route = {}, workflow = {}, budget = 
       action: "notify_owner",
       allowed: true,
       payload: {
-        title: "AZZCO safety gate triggered",
+        title: "VBOARD safety gate triggered",
         gates: safety.gates,
         category: route.category,
         urgency: route.urgency
@@ -111,7 +111,7 @@ function enforceSafetyGates({ request = {}, route = {}, workflow = {}, budget = 
       owner_approval_required: safety.ownerApprovalRequired,
       budget_mode: budget.mode || "normal"
     },
-    openclaw_handoff: {
+    agent_runtime_handoff: {
       ...handoff,
       channel_actions: enforcedActions,
       safety: {

@@ -5,7 +5,7 @@ const path = require("path");
 
 class RouteLogger {
   constructor({
-    filePath = process.env.AZZCO_ROUTE_LOG_PATH || path.join(process.cwd(), "data", "route_log.jsonl")
+    filePath = process.env.VBOARD_ROUTE_LOG_PATH || path.join(process.cwd(), "data", "route_log.jsonl")
   } = {}) {
     this.filePath = filePath;
   }

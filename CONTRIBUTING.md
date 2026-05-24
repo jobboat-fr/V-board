@@ -11,7 +11,7 @@
 2. The CI will fail if any of these are violated:
    - `council_may_send` is ever `true` in source code
    - A hardcoded phone number (`+336`, `+337`) appears in any `.js`, `.sh`, `.py`, or `.md`
-   - A private server IP (`187.127.`, `57.130.58.`, etc.) appears in any code file
+   - A private server IP (`198.51.100.`, `203.0.113.`, etc.) appears in any code file
    - A committed secret is detected in `.env` files
 
 3. All new routing decisions must pass the 9-fixture doctor grid.
@@ -20,7 +20,7 @@
 ## Secret Management
 
 - Secrets go in `.env` (never committed) — see `.env.example` in each package
-- Server env files live in `/etc/azzco-council.env` and `/etc/azzco-ops-core.env`
+- Server env files live in `/etc/vboard-council.env` and `/etc/vboard-ops-core.env`
 - API keys go in `.secrets/api_keys.json` (never committed, `chmod 600`)
 
 ## The `council_may_send: false` Invariant

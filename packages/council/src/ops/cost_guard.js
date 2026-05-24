@@ -5,17 +5,17 @@ const { BudgetStore } = require("./budget_store");
 const { estimateTokens } = require("../utils/token_estimator");
 
 const TOKEN_PRICES_USD_PER_1M = {
-  "together/Qwen/Qwen3.5-9B": { in: 0.10, out: 0.15 },
-  "together/google/gemma-4-31B-it": { in: 0.39, out: 0.97 },
-  "together/moonshotai/Kimi-K2.5": { in: 0.50, out: 2.80 },
-  "openai/gpt-oss-20b": { in: 0.05, out: 0.20 },
-  "openai/gpt-oss-120b": { in: 0.15, out: 0.60 },
+  "fallback/default-small-model": { in: 0.10, out: 0.15 },
+  "fallback/default-review-model": { in: 0.39, out: 0.97 },
+  "fallback/premium-deal-model": { in: 0.50, out: 2.80 },
+  "remote/default-small-model": { in: 0.05, out: 0.20 },
+  "remote/default-large-model": { in: 0.15, out: 0.60 },
   "local/cto-specialist": { in: 0, out: 0 },
   "open-source/fallback-70b-class": { in: 0, out: 0 },
-  "facebook/bart-large-mnli": { in: 0, out: 0 },
-  "cardiffnlp/twitter-roberta-base-sentiment-latest": { in: 0, out: 0 },
-  "SamLowe/roberta-base-go_emotions": { in: 0, out: 0 },
-  "sshleifer/distilbart-cnn-12-6": { in: 0, out: 0 }
+  "classifier/zero-shot-default": { in: 0, out: 0 },
+  "classifier/sentiment-default": { in: 0, out: 0 },
+  "classifier/emotion-default": { in: 0, out: 0 },
+  "classifier/summarizer-default": { in: 0, out: 0 }
 };
 
 function registryModel(alias) {
@@ -53,7 +53,7 @@ function planFor(route, request = {}, forceCheap = false) {
   }
   if (route.category === "daily_communications" || route.category === "mail_labeling") {
     return [
-      { alias: "hf-zero-shot-classifier", model: registryModel("hf-zero-shot-classifier"), multiplier: 1, inputRatio: 0.60, outputRatio: 0.10, reason: "low cost label" },
+      { alias: "classifier-zero-shot", model: registryModel("classifier-zero-shot"), multiplier: 1, inputRatio: 0.60, outputRatio: 0.10, reason: "low cost label" },
       { alias: "cheap-default", model: registryModel("cheap-default"), multiplier: 0.25, inputRatio: 0.55, outputRatio: 0.70, reason: "uncertain/summary fallback" }
     ];
   }
@@ -78,7 +78,7 @@ function planFor(route, request = {}, forceCheap = false) {
   if (route.category === "legal_accounting" || route.category === "invoice_reconciliation") {
     return [
       { alias: "cheap-default", model: registryModel("cheap-default"), multiplier: 1, inputRatio: 0.30, outputRatio: 0.25, reason: "extract/compress" },
-      { alias: route.category === "invoice_reconciliation" ? "ovh-accounting-specialist" : "ovh-legal-specialist", model: registryModel(route.category === "invoice_reconciliation" ? "ovh-accounting-specialist" : "ovh-legal-specialist"), multiplier: 0.65, inputRatio: 0.70, outputRatio: 0.85, reason: "restricted specialist" }
+      { alias: route.category === "invoice_reconciliation" ? "back-office-accounting-specialist" : "back-office-legal-specialist", model: registryModel(route.category === "invoice_reconciliation" ? "back-office-accounting-specialist" : "back-office-legal-specialist"), multiplier: 0.65, inputRatio: 0.70, outputRatio: 0.85, reason: "restricted specialist" }
     ];
   }
 
@@ -88,16 +88,16 @@ function planFor(route, request = {}, forceCheap = false) {
 function byProvider(modelPlan = []) {
   return modelPlan.reduce((acc, step) => {
     const model = step.model || "";
-    const provider = model.startsWith("together/")
-      ? "together"
-      : /bart|roberta|distilbart|facebook\/|cardiffnlp\/|SamLowe\//i.test(model)
-        ? "huggingface"
+    const provider = model.startsWith("fallback/")
+      ? "fallback"
+      : /bart|roberta|distilbart|classifier\//i.test(model)
+        ? "remote"
         : model.startsWith("local/") || model.startsWith("open-source/")
           ? "local"
-          : model.startsWith("openai/gpt-oss")
-            ? "huggingface"
-            : model.startsWith("openai/")
-              ? "openai"
+          : model.startsWith("remote/default")
+            ? "remote"
+            : model.startsWith("remote/")
+              ? "remote"
             : "other";
     acc[provider] = Number(((acc[provider] || 0) + Number(step.estimatedUsd || 0)).toFixed(6));
     return acc;
@@ -107,12 +107,12 @@ function byProvider(modelPlan = []) {
 class CostGuard {
   constructor({
     store = new BudgetStore(),
-    dailyLimitUsd = Number(process.env.AZZCO_DAILY_API_BUDGET_USD || 6),
-    monthlyLimitUsd = Number(process.env.AZZCO_MONTHLY_API_BUDGET_USD || 180),
-    hardStopUsd = Number(process.env.AZZCO_EMERGENCY_HARD_STOP_USD || 8),
+    dailyLimitUsd = Number(process.env.VBOARD_DAILY_API_BUDGET_USD || 6),
+    monthlyLimitUsd = Number(process.env.VBOARD_MONTHLY_API_BUDGET_USD || 180),
+    hardStopUsd = Number(process.env.VBOARD_EMERGENCY_HARD_STOP_USD || 8),
     providerDailyCaps = {
-      together: Number(process.env.AZZCO_TOGETHER_DAILY_CAP_USD || 3),
-      huggingface: Number(process.env.AZZCO_HF_DAILY_CAP_USD || 3)
+      fallback: Number(process.env.VBOARD_FALLBACK_LLM_DAILY_CAP_USD || 3),
+      remote: Number(process.env.VBOARD_LLM_DAILY_CAP_USD || 3)
     }
   } = {}) {
     this.store = store;
@@ -123,7 +123,7 @@ class CostGuard {
   }
 
   forcedCheap() {
-    return ["1", "true", "yes", "on"].includes(String(process.env.AZZCO_FORCE_CHEAP_MODE || "").toLowerCase());
+    return ["1", "true", "yes", "on"].includes(String(process.env.VBOARD_FORCE_CHEAP_MODE || "").toLowerCase());
   }
 
   estimate({ route, request, forceCheap = false }) {
@@ -216,3 +216,5 @@ module.exports = {
   tokenCost,
   planFor
 };
+
+

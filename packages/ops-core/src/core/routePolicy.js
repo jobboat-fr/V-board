@@ -8,7 +8,7 @@ function inferCategory(text, input = {}) {
   if (contains(text, ["p0", "data leak", "breach", "server down", "active attack"])) return "incident_watchdog";
   // High-value content checks before general email shortcut so an email about invoices
   // or legal matters routes to the correct high-risk category
-  if (contains(text, ["invoice", "receipt", "bank transaction", "qonto"])) return "invoice_reconciliation";
+  if (contains(text, ["invoice", "receipt", "bank transaction", "bank"])) return "invoice_reconciliation";
   if (contains(text, ["legal", "accounting", "fiscal", "tax", "urssaf", "dsn", "statuts"])) return "legal_accounting";
   if (contains(text, ["vercel", "railway", "council", "runner", "deploy", "uptime", "security"])) return "cto_audit";
   // Generic email labeling — only when the request is explicitly about labeling/classifying

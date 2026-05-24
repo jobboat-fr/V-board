@@ -1,5 +1,5 @@
 """
-Unit tests — adapters/meeting_room/server.py
+Unit tests â€” adapters/meeting_room/server.py
 No API keys required.  External calls (STT, TTS, intervention, council) are mocked.
 """
 
@@ -11,12 +11,12 @@ import pytest
 from fastapi.testclient import TestClient
 
 
-# ── Fixtures ──────────────────────────────────────────────────────────────────
+# â”€â”€ Fixtures â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @pytest.fixture(autouse=True)
 def reset_rooms(tmp_path, monkeypatch):
     """Wipe both the active-room registry AND the transcript buffers between tests."""
-    monkeypatch.setenv("AZZCO_DATA_ROOT", str(tmp_path))
+    monkeypatch.setenv("VBOARD_DATA_ROOT", str(tmp_path))
     from adapters.meeting_room import escalation, evidence_store, room_registry, short_term_memory as stm
     room_registry.active_rooms.clear()
     stm._rooms.clear()
@@ -51,14 +51,14 @@ def secured_client():
     srv.API_TOKEN = original
 
 
-# ── Probes ────────────────────────────────────────────────────────────────────
+# â”€â”€ Probes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def test_health(client):
     r = client.get("/health")
     assert r.status_code == 200
     data = r.json()
     assert data["ok"] is True
-    assert data["service"] == "hermes-meeting-room"
+    assert data["service"] == "vboard-meeting-room"
     assert data["version"] == "1.0.0"
 
 
@@ -68,8 +68,8 @@ def test_ready_returns_all_fields(client):
     data = r.json()
     for field in (
         "ok", "production_mode", "auth_required", "token_configured", "stt_configured", "tts_configured",
-        "tavus_configured", "evidence_root",
-        "anthropic_configured", "openai_configured", "google_configured",
+        "avatar_configured", "evidence_root",
+        "primary_llm_configured", "reviewer_llm_configured", "chair_llm_configured",
         "livekit_configured", "livekit_agent", "active_rooms",
     ):
         assert field in data, f"Missing field: {field}"
@@ -82,7 +82,7 @@ def test_ready_active_rooms_count(client):
     assert r.json()["active_rooms"] == 1
 
 
-# ── Advisors (public — no auth required) ─────────────────────────────────────
+# â”€â”€ Advisors (public â€” no auth required) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def test_advisors_list_no_auth(client):
     r = client.get("/advisors")
@@ -93,7 +93,7 @@ def test_advisors_list_no_auth(client):
 
 
 def test_advisors_no_triggers_exposed(client):
-    """triggers is internal — must not appear in the public listing."""
+    """triggers is internal â€” must not appear in the public listing."""
     r = client.get("/advisors")
     for adv in r.json()["advisors"]:
         assert "triggers" not in adv, f"triggers leaked for advisor {adv.get('id')}"
@@ -112,7 +112,7 @@ def test_advisors_have_required_fields(client):
             assert field in adv, f"Advisor {adv.get('id')} missing public field {field}"
 
 
-# ── Auth ──────────────────────────────────────────────────────────────────────
+# â”€â”€ Auth â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def test_secured_rejects_missing_token(secured_client):
     r = secured_client.get("/meeting/status")
@@ -152,7 +152,7 @@ def test_production_requires_token_even_if_missing_env():
         srv.API_TOKEN = original
 
 
-# ── Meeting status ────────────────────────────────────────────────────────────
+# â”€â”€ Meeting status â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def test_status_empty(client):
     r = client.get("/meeting/status")
@@ -163,7 +163,7 @@ def test_status_empty(client):
     assert data["rooms"] == []
 
 
-# ── Meeting join ──────────────────────────────────────────────────────────────
+# â”€â”€ Meeting join â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def test_join_success(client):
     r = client.post("/meeting/join", json={"room_id": "room-1", "advisor_id": "cfo"})
@@ -226,7 +226,7 @@ def test_join_topic_stored(client):
     assert rooms[0]["topic"] == "Q4 budget review"
 
 
-# ── Meeting leave ─────────────────────────────────────────────────────────────
+# â”€â”€ Meeting leave â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def test_leave_removes_room(client):
     client.post("/meeting/join", json={"room_id": "room-1", "advisor_id": "cfo"})
@@ -259,7 +259,7 @@ def test_leave_clears_transcript(client):
         "room_id": "room-1", "text": "Hello", "speaker_name": "A"
     })
     client.post("/meeting/leave", json={"room_id": "room-1"})
-    # Re-join and push a new transcript — size must be 1, not 2
+    # Re-join and push a new transcript â€” size must be 1, not 2
     client.post("/meeting/join", json={"room_id": "room-1", "advisor_id": "cfo"})
     r = client.post("/meeting/transcript", json={
         "room_id": "room-1", "text": "Fresh start", "speaker_name": "B"
@@ -267,7 +267,7 @@ def test_leave_clears_transcript(client):
     assert r.json()["transcript_size"] == 1
 
 
-# ── Transcript ────────────────────────────────────────────────────────────────
+# â”€â”€ Transcript â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def test_transcript_push_returns_201(client):
     r = client.post("/meeting/transcript", json={
@@ -321,7 +321,7 @@ def test_transcript_explicit_speaker_id(client):
     assert r.json()["utterance"]["speaker_id"] == "alice-uid-42"
 
 
-# ── STT ───────────────────────────────────────────────────────────────────────
+# â”€â”€ STT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def test_transcript_extracts_commitment(client):
     r = client.post("/meeting/transcript", json={
@@ -348,10 +348,10 @@ def test_preflight_endpoint_persists_legal_gate(client):
     assert "manifest.json" in data["evidence"]["manifest"]
 
 
-def test_join_can_create_tavus_avatar(client):
+def test_join_can_create_avatar_provider(client):
     avatar = {
         "ok": True,
-        "provider": "tavus",
+        "provider": "avatar",
         "pipeline_mode": "echo",
         "room_id": "room-avatar",
         "advisor_id": "cfo",
@@ -360,12 +360,12 @@ def test_join_can_create_tavus_avatar(client):
         "conversation_url": "https://example.test/c-1",
         "meeting_token": "secret-token",
     }
-    with patch("adapters.meeting_room.tavus.create_conversation",
+    with patch("adapters.meeting_room.avatar.create_conversation",
                new=AsyncMock(return_value=avatar)):
         r = client.post("/meeting/join", json={
             "room_id": "room-avatar",
             "advisor_id": "cfo",
-            "avatar": {"provider": "tavus", "tavus_api_key": "tvk-user"},
+            "avatar": {"provider": "avatar", "avatar_api_key": "tvk-user"},
         })
     assert r.status_code == 200
     data = r.json()
@@ -373,28 +373,28 @@ def test_join_can_create_tavus_avatar(client):
     assert "meeting_token" not in client.get("/meeting/status").json()["rooms"][0]["avatar"]
 
 
-def test_tavus_avatar_endpoint(client):
+def test_avatar_provider_endpoint(client):
     avatar = {
         "ok": True,
-        "provider": "tavus",
+        "provider": "avatar",
         "room_id": "room-avatar-2",
         "advisor_id": "cto",
         "conversation_id": "c-2",
         "conversation_url": "https://example.test/c-2",
     }
-    with patch("adapters.meeting_room.tavus.create_conversation",
+    with patch("adapters.meeting_room.avatar.create_conversation",
                new=AsyncMock(return_value=avatar)):
-        r = client.post("/meeting/avatar/tavus", json={
+        r = client.post("/meeting/avatar/provider", json={
             "room_id": "room-avatar-2",
             "advisor_id": "cto",
-            "tavus_api_key": "tvk-user",
+            "avatar_api_key": "tvk-user",
         })
     assert r.status_code == 200
     assert r.json()["conversation_id"] == "c-2"
 
 
-def test_tavus_echo_endpoint(client):
-    r = client.post("/meeting/avatar/tavus/echo", json={
+def test_avatar_echo_endpoint(client):
+    r = client.post("/meeting/avatar/provider/echo", json={
         "room_id": "room-avatar-3",
         "conversation_id": "c-3",
         "text": "Here is the CTO view.",
@@ -405,7 +405,7 @@ def test_tavus_echo_endpoint(client):
     assert data["payload"]["properties"]["text"] == "Here is the CTO view."
 
 
-def test_stt_unavailable_without_groq_key(client):
+def test_stt_unavailable_without_key(client):
     with patch("adapters.meeting_room.stt.is_configured", return_value=False):
         r = client.post("/meeting/stt", json={
             "room_id": "room-1",
@@ -413,7 +413,7 @@ def test_stt_unavailable_without_groq_key(client):
             "speaker_name": "Alice",
         })
     assert r.status_code == 503
-    assert "GROQ_API_KEY" in r.json()["detail"]
+    assert "STT_API_KEY" in r.json()["detail"]
 
 
 def test_stt_invalid_base64_returns_400(client):
@@ -441,7 +441,7 @@ def test_stt_audio_too_small_returns_400(client):
 def test_stt_empty_transcript(client):
     empty_result = {
         "text": "", "duration_s": 0.4, "cost_usd": 0.0,
-        "model": "whisper-large-v3-turbo", "empty": True,
+        "model": "stt-default-model", "empty": True,
     }
     with patch("adapters.meeting_room.stt.is_configured", return_value=True), \
          patch("adapters.meeting_room.stt.transcribe", new=AsyncMock(return_value=empty_result)):
@@ -462,7 +462,7 @@ def test_stt_success_appends_utterance(client):
     stt_result = {
         "text": "The budget is too high.",
         "duration_s": 2.8, "cost_usd": 0.000086,
-        "model": "whisper-large-v3-turbo", "empty": False,
+        "model": "stt-default-model", "empty": False,
     }
     with patch("adapters.meeting_room.stt.is_configured", return_value=True), \
          patch("adapters.meeting_room.stt.transcribe", new=AsyncMock(return_value=stt_result)):
@@ -482,7 +482,7 @@ def test_stt_success_appends_utterance(client):
 def test_stt_success_increments_room_transcript(client):
     stt_result = {
         "text": "Cut the servers.", "duration_s": 1.5, "cost_usd": 0.00005,
-        "model": "whisper-large-v3-turbo", "empty": False,
+        "model": "stt-default-model", "empty": False,
     }
     with patch("adapters.meeting_room.stt.is_configured", return_value=True), \
          patch("adapters.meeting_room.stt.transcribe", new=AsyncMock(return_value=stt_result)):
@@ -496,15 +496,15 @@ def test_stt_success_increments_room_transcript(client):
     assert stm.size("room-stt") == 1
 
 
-# ── TTS ───────────────────────────────────────────────────────────────────────
+# â”€â”€ TTS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-def test_tts_unavailable_without_elevenlabs_key(client):
+def test_tts_unavailable_without_key(client):
     with patch("adapters.meeting_room.tts.is_configured", return_value=False):
         r = client.post("/meeting/tts", json={
             "room_id": "room-1", "text": "Hello world", "advisor_id": "cfo"
         })
     assert r.status_code == 503
-    assert "ELEVENLABS_API_KEY" in r.json()["detail"]
+    assert "VOICE_API_KEY" in r.json()["detail"]
 
 
 def test_tts_success_returns_audio_base64(client):
@@ -512,11 +512,11 @@ def test_tts_success_returns_audio_base64(client):
     tts_result = {
         "audio":     fake_audio,
         "mime_type": "audio/mpeg",
-        "voice_id":  "JBFqnCBsd6RMkjVDRZzb",
+        "voice_id":  "voice-cfo-default",
         "chars":     11,
         "cost_usd":  0.0033,
         "ms":        320,
-        "model":     "eleven_turbo_v2_5",
+        "model":     "voice-default-fast",
     }
     with patch("adapters.meeting_room.tts.is_configured", return_value=True), \
          patch("adapters.meeting_room.tts.synthesize", new=AsyncMock(return_value=tts_result)):
@@ -529,27 +529,27 @@ def test_tts_success_returns_audio_base64(client):
     assert base64.b64decode(data["audio_base64"]) == fake_audio
     assert data["mime_type"] == "audio/mpeg"
     assert data["chars"] == 11
-    assert data["model"] == "eleven_turbo_v2_5"
+    assert data["model"] == "voice-default-fast"
 
 
 def test_tts_voice_id_in_response(client):
     tts_result = {
         "audio": b"\x00" * 50, "mime_type": "audio/mpeg",
-        "voice_id": "AZnzlk1XvdvUeBnXmlld", "chars": 5,
-        "cost_usd": 0.0015, "ms": 120, "model": "eleven_turbo_v2_5",
+        "voice_id": "voice-coo-default", "chars": 5,
+        "cost_usd": 0.0015, "ms": 120, "model": "voice-default-fast",
     }
     with patch("adapters.meeting_room.tts.is_configured", return_value=True), \
          patch("adapters.meeting_room.tts.synthesize", new=AsyncMock(return_value=tts_result)):
         r = client.post("/meeting/tts", json={
             "room_id": "room-1", "text": "Brief", "advisor_id": "coo"
         })
-    assert r.json()["voice_id"] == "AZnzlk1XvdvUeBnXmlld"
+    assert r.json()["voice_id"] == "voice-coo-default"
 
 
-# ── Intervention check ────────────────────────────────────────────────────────
+# â”€â”€ Intervention check â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def test_check_silence_guard(client):
-    """Empty room → silence guard fires → speak=False."""
+    """Empty room â†’ silence guard fires â†’ speak=False."""
     silent = {
         "speak": False, "message": "", "urgency": 0,
         "reason": "silence_guard", "touched_advisors": [],
@@ -617,7 +617,7 @@ def test_check_intervention_allows_autonomous_low_risk_speech(client):
 
 
 def test_check_uses_room_topic_when_not_provided(client):
-    """Topic not in body — server should pull from registered room."""
+    """Topic not in body â€” server should pull from registered room."""
     client.post("/meeting/join", json={
         "room_id": "room-1", "advisor_id": "cfo", "topic": "product roadmap"
     })
@@ -633,7 +633,7 @@ def test_check_uses_room_topic_when_not_provided(client):
     assert captured.get("topic") == "product roadmap"
 
 
-# ── Council analyze ───────────────────────────────────────────────────────────
+# â”€â”€ Council analyze â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def test_escalation_approval_resumes_with_context(client):
     client.post("/meeting/join", json={"room_id": "room-gate", "advisor_id": "legal"})
@@ -722,7 +722,7 @@ def test_council_analyze_appends_ai_utterance(client):
 
 
 def test_council_analyze_unknown_advisor_falls_back_gracefully(client):
-    """Unknown advisor_id should not crash — falls back to generic name."""
+    """Unknown advisor_id should not crash â€” falls back to generic name."""
     mock_record = {
         "verdict": {"final_output": "General advice.", "consensus_reached": True},
         "totals":  {},
@@ -741,11 +741,11 @@ def test_council_analyze_unknown_advisor_falls_back_gracefully(client):
     assert r.status_code == 200   # must not crash with 500
 
 
-# ── Full room lifecycle (integration-style, all mocked) ──────────────────────
+# â”€â”€ Full room lifecycle (integration-style, all mocked) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def test_full_lifecycle_join_transcript_check_leave(client):
     """
-    Happy path: join → push 3 utterances → check → leave.
+    Happy path: join â†’ push 3 utterances â†’ check â†’ leave.
     Asserts state at each step.
     """
     # 1. Join
@@ -784,3 +784,4 @@ def test_full_lifecycle_join_transcript_check_leave(client):
     r = client.post("/meeting/leave", json={"room_id": "e2e-room"})
     assert r.json()["flushed_count"] == 3
     assert client.get("/meeting/status").json()["active_rooms"] == 0
+

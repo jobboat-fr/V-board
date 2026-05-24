@@ -4,7 +4,7 @@ const crypto = require("crypto");
 const { hasScope, loadApiKeys, matchApiKey } = require("./apiKeys");
 
 function isPublicPath(pathname) {
-  return pathname === "/" || pathname === "/dashboard" || pathname === "/health" || pathname === "/ready";
+  return pathname === "/" || pathname === "/dashboard" || pathname === "/health";
 }
 
 function safeEqual(a, b) {
@@ -28,8 +28,8 @@ function scopeFor(method, pathname) {
   if (method === "GET" && pathname === "/v1/work-orders") return ["work_orders:read"];
   if (method === "GET" && pathname === "/v1/finance/status") return ["finance:read"];
   if (method === "POST" && pathname === "/v1/finance/build") return ["finance:write"];
-  if (method === "POST" && pathname === "/v1/finance/import-qonto") return ["finance:write", "qonto:import"];
-  if (method === "POST" && pathname === "/v1/finance/pull-qonto") return ["finance:write", "qonto:pull"];
+  if (method === "POST" && pathname === "/v1/finance/import-bank") return ["finance:write", "bank:import"];
+  if (method === "POST" && pathname === "/v1/finance/pull-bank") return ["finance:write", "bank:pull"];
   if (method === "GET" && pathname === "/v1/observability/summary") return ["observability:read"];
   if (method === "GET" && pathname === "/v1/observability/events") return ["observability:read"];
   if (method === "GET" && pathname === "/v1/observability/supabase") return ["observability:read"];

@@ -8,7 +8,7 @@ const VERSION = "0.2.0";
 const CURRENCY = "EUR";
 
 const CHART_OF_ACCOUNTS = {
-  "Assets:Bank:Qonto-EUR": { type: "asset", desc: "Main Qonto EUR account" },
+  "Assets:Bank:Main-EUR": { type: "asset", desc: "Main bank EUR account" },
   "Assets:Receivable:Clients": { type: "asset", desc: "Client invoices outstanding" },
   "Equity:OpeningBalances": { type: "equity", desc: "Verified opening bank balance" },
   "Equity:OwnerCurrentAccount": { type: "equity", desc: "Owner injections and current account" },
@@ -19,20 +19,20 @@ const CHART_OF_ACCOUNTS = {
   "Expenses:Bank:Fees": { type: "expense", desc: "Bank, card, and conversion fees" },
   "Expenses:Cloud:Vercel": { type: "expense", desc: "Vercel hosting and domains" },
   "Expenses:Cloud:Railway": { type: "expense", desc: "Railway hosting" },
-  "Expenses:Cloud:Hostinger": { type: "expense", desc: "Hostinger hosting and domains" },
+  "Expenses:Cloud:VPS": { type: "expense", desc: "VPS hosting and domains" },
   "Expenses:Software:Cursor": { type: "expense", desc: "Cursor AI IDE" },
   "Expenses:Software:Windsurf": { type: "expense", desc: "Windsurf AI IDE" },
-  "Expenses:Software:AI-Anthropic": { type: "expense", desc: "Anthropic API" },
-  "Expenses:Software:AI-OpenAI": { type: "expense", desc: "OpenAI API" },
-  "Expenses:Software:AI-Together": { type: "expense", desc: "Together AI inference" },
-  "Expenses:Software:AI-HuggingFace": { type: "expense", desc: "Hugging Face inference" },
+  "Expenses:Software:AI-primary LLM provider": { type: "expense", desc: "primary LLM provider API" },
+  "Expenses:Software:AI-reviewer LLM provider": { type: "expense", desc: "reviewer LLM provider API" },
+  "Expenses:Software:AI-FallbackProvider": { type: "expense", desc: "fallback LLM provider inference" },
+  "Expenses:Software:AI-LLM provider": { type: "expense", desc: "LLM provider inference" },
   "Expenses:Software:AI-AdCreative": { type: "expense", desc: "AdCreative AI marketing" },
-  "Expenses:Software:AI-ElevenLabs": { type: "expense", desc: "ElevenLabs API" },
+  "Expenses:Software:AI-voice provider": { type: "expense", desc: "voice provider API" },
   "Expenses:Software:AI-Video-Runway": { type: "expense", desc: "Runway AI video" },
   "Expenses:Software:AI-Video-Synthesia": { type: "expense", desc: "Synthesia AI video" },
   "Expenses:Software:AI-Video-Kling": { type: "expense", desc: "Kling AI video" },
   "Expenses:Software:Apple": { type: "expense", desc: "Apple subscriptions" },
-  "Expenses:Software:Google": { type: "expense", desc: "Google subscriptions" },
+  "Expenses:Software:GenericCloud": { type: "expense", desc: "chair LLM provider subscriptions" },
   "Expenses:Software:Zoho": { type: "expense", desc: "Zoho software subscriptions" },
   "Expenses:Software:Other": { type: "expense", desc: "Other SaaS and software" },
   "Expenses:Meals-Coworking": { type: "expense", desc: "Coworking cafe" },
@@ -43,36 +43,43 @@ const CHART_OF_ACCOUNTS = {
   "Income:Uncategorized": { type: "income", desc: "Unclassified income - owner/accountant review required" }
 };
 
+// Classification rules map merchant-name patterns to Beancount accounts.
+// Add your own rules here — these are examples only.
+// Pattern is matched against the transaction merchant/label field.
 const CLASSIFICATION_RULES = [
-  [/^M SIDY DIABE/i, "Income:Consulting", "Client consulting revenue"],
-  [/^Qonto SA/i, "Equity:OpeningBalances", "Qonto account funding"],
-  [/^FOUREZ Quentin/i, "Equity:ExternalCapital", "External capital movement"],
-  [/^Azer Rached/i, "Equity:OwnerCurrentAccount", "Owner capital/current-account movement"],
-  [/^Google Payment Ireland/i, "Income:Other", "Google payment"],
-  [/^CURSOR/i, (amount) => amount >= 0 ? "Income:Refunds" : "Expenses:Software:Cursor", "Cursor AI IDE"],
-  [/^ADCREATIVEAI/i, (amount) => amount >= 0 ? "Income:Refunds" : "Expenses:Software:AI-AdCreative", "AdCreative AI"],
-  [/^Qonto$/i, "Expenses:Bank:Fees", "Qonto bank fee"],
+  // Income
+  [/^CONSULTING CLIENT/i, "Income:Consulting", "Client consulting revenue"],
+  [/^chair LLM provider Payment/i, "Income:Other", "chair LLM provider payment"],
+  // Owner / equity movements
+  [/^OWNER TRANSFER/i, "Equity:OwnerCurrentAccount", "Owner capital/current-account movement"],
+  [/^EXTERNAL CAPITAL/i, "Equity:ExternalCapital", "External capital movement"],
+  [/^OPENING BALANCE/i, "Equity:OpeningBalances", "Bank account opening balance"],
+  // Bank fees
+  [/^BANK FEE/i, "Expenses:Bank:Fees", "Bank fee"],
   [/^Revolut\*\*/i, "Expenses:Bank:Fees", "Revolut fee"],
+  // Cloud hosting
   [/^VERCEL/i, "Expenses:Cloud:Vercel", "Vercel hosting/domains"],
   [/^RAILWAY/i, "Expenses:Cloud:Railway", "Railway hosting"],
-  [/^hostinger\.com/i, "Expenses:Cloud:Hostinger", "Hostinger hosting"],
+  [/^VPS |^CLOUD HOST/i, "Expenses:Cloud:VPS", "VPS/cloud hosting"],
+  // AI tooling
+  [/^CURSOR/i, (amount) => amount >= 0 ? "Income:Refunds" : "Expenses:Software:Cursor", "Cursor AI IDE"],
   [/^WINDSURF/i, "Expenses:Software:Windsurf", "Windsurf AI IDE"],
-  [/^ANTHROPIC/i, "Expenses:Software:AI-Anthropic", "Anthropic API"],
-  [/^OPENAI/i, "Expenses:Software:AI-OpenAI", "OpenAI API"],
-  [/^TOGETHER COMPUTER/i, "Expenses:Software:AI-Together", "Together AI inference"],
-  [/^HUGGING\s*FACE|^HF\b/i, "Expenses:Software:AI-HuggingFace", "Hugging Face inference"],
-  [/^ELEVENLABS/i, "Expenses:Software:AI-ElevenLabs", "ElevenLabs API"],
+  [/^PRIMARY LLM/i, "Expenses:Software:AI-primary LLM provider", "primary LLM provider API"],
+  [/^REVIEWER LLM/i, "Expenses:Software:AI-reviewer LLM provider", "reviewer LLM provider API"],
+  [/^FALLBACK LLM/i, "Expenses:Software:AI-FallbackProvider", "fallback LLM provider inference"],
+  [/^REMOTE LLM/i, "Expenses:Software:AI-LLM provider", "LLM provider inference"],
+  [/^ADCREATIVEAI/i, (amount) => amount >= 0 ? "Income:Refunds" : "Expenses:Software:AI-AdCreative", "AdCreative AI"],
+  [/^VOICE PROVIDER/i, "Expenses:Software:AI-voice provider", "voice provider API"],
   [/^RUNWAY/i, "Expenses:Software:AI-Video-Runway", "Runway AI video"],
   [/^SYNTHESIA/i, "Expenses:Software:AI-Video-Synthesia", "Synthesia AI video"],
   [/^KLINGAI/i, "Expenses:Software:AI-Video-Kling", "Kling AI video"],
+  // Software subscriptions
   [/^APPLE/i, "Expenses:Software:Apple", "Apple subscription"],
-  [/^GOOGLE \*Play|^Google Chrome/i, "Expenses:Software:Google", "Google subscription"],
+  [/^CHAIR LLM \*Play|^chair LLM provider Chrome/i, "Expenses:Software:GenericCloud", "chair LLM provider subscription"],
   [/^ZOHO/i, "Expenses:Software:Zoho", "Zoho software"],
-  [/^TECHPLUSE/i, "Expenses:Software:Other", "Other software"],
-  [/^AU BUREAU/i, "Expenses:Meals-Coworking", "Coworking cafe"],
-  [/^SAS LE FIDELE FRENE|^ROLLINGS BAR|^BIG FOOD|^MONOPRIX|^WACH|^CAMPANILE/i, "Expenses:Meals", "Meal/grocery"],
-  [/^SERVICE NAVIGO|^VTRANSPORTS/i, "Expenses:Transport", "Transport"],
-  [/^VERIF ALTARES/i, "Expenses:Professional:DueDiligence", "Altares D&B due diligence"]
+  // Other
+  [/^COWORKING/i, "Expenses:Meals-Coworking", "Coworking cafe"],
+  [/^DUE DILIGENCE/i, "Expenses:Professional:DueDiligence", "Due diligence"]
 ];
 
 function ensureDir(dir) {
@@ -281,15 +288,15 @@ function calculateTotals(classified, validationInfo) {
 
   for (const tx of classified) {
     if (tx.amount >= 0) {
-      add("Assets:Bank:Qonto-EUR", tx.amount);
+      add("Assets:Bank:Main-EUR", tx.amount);
       add(tx.account, -tx.amount);
     } else {
-      add("Assets:Bank:Qonto-EUR", tx.amount);
+      add("Assets:Bank:Main-EUR", tx.amount);
       add(tx.account, Math.abs(tx.amount));
     }
   }
 
-  const periodNetMovement = round2(accountTotals["Assets:Bank:Qonto-EUR"] || 0);
+  const periodNetMovement = round2(accountTotals["Assets:Bank:Main-EUR"] || 0);
   const openingBalance = validationInfo.openingBalance;
   const computedClosingBalance = openingBalance == null ? null : round2(openingBalance + periodNetMovement);
   const declaredClosingBalance = validationInfo.closingBalance;
@@ -331,10 +338,10 @@ function beancountEscape(value) {
 
 function renderAccounts() {
   const lines = [
-    "; AZZ&CO LABS - Chart of Accounts",
+    "; Example Company - Chart of Accounts",
     `; Generated by cfo-stack ${VERSION}`,
     "",
-    "option \"title\" \"AZZ&CO LABS\"",
+    "option \"title\" \"Example Company\"",
     `option "operating_currency" "${CURRENCY}"`,
     ""
   ];
@@ -346,7 +353,7 @@ function renderAccounts() {
 
 function renderMonthlyLedger(month, txs, runningBalance) {
   const lines = [
-    `; AZZ&CO LABS - Transactions ${month}`,
+    `; Example Company - Transactions ${month}`,
     `; Generated by cfo-stack ${VERSION}`,
     ""
   ];
@@ -361,7 +368,7 @@ function renderMonthlyLedger(month, txs, runningBalance) {
     if (amount >= 0) {
       lines.push(
         `${tx.date} * "${payee}" "${desc}"`,
-        `  Assets:Bank:Qonto-EUR          ${fmt(abs)} ${CURRENCY}`,
+        `  Assets:Bank:Main-EUR          ${fmt(abs)} ${CURRENCY}`,
         `  ${tx.account.padEnd(34)} ${fmt(-abs)} ${CURRENCY}${proof}`,
         `  ; source: ${source} | id: ${tx.occurrenceId} | classify: ${classification}`,
         ""
@@ -370,7 +377,7 @@ function renderMonthlyLedger(month, txs, runningBalance) {
       lines.push(
         `${tx.date} * "${payee}" "${desc}"`,
         `  ${tx.account.padEnd(34)} ${fmt(abs)} ${CURRENCY}${proof}`,
-        `  Assets:Bank:Qonto-EUR          ${fmt(-abs)} ${CURRENCY}`,
+        `  Assets:Bank:Main-EUR          ${fmt(-abs)} ${CURRENCY}`,
         `  ; source: ${source} | id: ${tx.occurrenceId} | classify: ${classification}`,
         ""
       );
@@ -378,14 +385,14 @@ function renderMonthlyLedger(month, txs, runningBalance) {
   }
   const [year, monthNo] = month.split("-").map(Number);
   const day = new Date(year, monthNo, 0).getDate();
-  lines.push(`${month}-${String(day).padStart(2, "0")} balance Assets:Bank:Qonto-EUR ${fmt(runningBalance)} ${CURRENCY}`);
+  lines.push(`${month}-${String(day).padStart(2, "0")} balance Assets:Bank:Main-EUR ${fmt(runningBalance)} ${CURRENCY}`);
   lines.push("");
   return `${lines.join("\n")}\n`;
 }
 
 function renderRules() {
   const lines = [
-    "# AZZ&CO LABS - Classification Rules",
+    "# Example Company - Classification Rules",
     `# Generated by cfo-stack ${VERSION}`,
     "",
     "rules:"
@@ -399,7 +406,7 @@ function renderRules() {
 
 function renderSummaryMarkdown(report) {
   const lines = [
-    "# AZZCO CFO Stack Report",
+    "# VBOARD CFO Stack Report",
     "",
     `Generated: ${report.generatedAt}`,
     `Status: ${report.status}`,
@@ -435,7 +442,7 @@ function buildBlockedReport(reason, details) {
   return {
     ok: false,
     status: "blocked",
-    engine: "azzco-cfo-stack",
+    engine: "vboard-cfo-stack",
     version: VERSION,
     generatedAt,
     currency: CURRENCY,
@@ -549,8 +556,8 @@ function buildCfoStack(dataRoot, options = {}) {
   }
 
   const mainLines = [
-    "; AZZ&CO LABS - Main Ledger",
-    `; Engine: azzco-cfo-stack ${VERSION}`,
+    "; Example Company - Main Ledger",
+    `; Engine: vboard-cfo-stack ${VERSION}`,
     "",
     "include \"accounts.beancount\"",
     "",
@@ -574,7 +581,7 @@ function buildCfoStack(dataRoot, options = {}) {
   const report = {
     ok: true,
     status: "ok",
-    engine: "azzco-cfo-stack",
+    engine: "vboard-cfo-stack",
     version: VERSION,
     generatedAt: new Date().toISOString(),
     currency: CURRENCY,
@@ -612,7 +619,7 @@ function buildCfoStack(dataRoot, options = {}) {
     },
     balanceSheet: {
       assets: {
-        qontoPeriodMovement: totals.periodNetMovement,
+        bankPeriodMovement: totals.periodNetMovement,
         openingBalance: totals.openingBalance,
         computedClosingBalance: totals.computedClosingBalance
       },
@@ -671,7 +678,7 @@ function buildCfoStack(dataRoot, options = {}) {
   return report;
 }
 
-function qontoAmount(transaction) {
+function bankTransactionAmount(transaction) {
   let amount = normalizeAmount(transaction.amount);
   const side = String(transaction.side || "").toLowerCase();
   if (side === "debit" && amount > 0) amount = -amount;
@@ -679,10 +686,10 @@ function qontoAmount(transaction) {
   return amount;
 }
 
-function importQontoReconciliation(dataRoot, reportPath, options = {}) {
+function importBankReconciliation(dataRoot, reportPath, options = {}) {
   if (!reportPath) {
-    const error = new Error("QONTO_REPORT_PATH_REQUIRED");
-    error.code = "QONTO_REPORT_PATH_REQUIRED";
+    const error = new Error("BANK_REPORT_PATH_REQUIRED");
+    error.code = "BANK_REPORT_PATH_REQUIRED";
     throw error;
   }
   const root = path.resolve(dataRoot);
@@ -692,8 +699,8 @@ function importQontoReconciliation(dataRoot, reportPath, options = {}) {
     : path.resolve(reportPath);
   const payload = safeReadJson(sourceFile, null);
   if (!payload || !Array.isArray(payload.transactions)) {
-    const error = new Error("QONTO_REPORT_INVALID");
-    error.code = "QONTO_REPORT_INVALID";
+    const error = new Error("BANK_REPORT_INVALID");
+    error.code = "BANK_REPORT_INVALID";
     throw error;
   }
 
@@ -704,7 +711,7 @@ function importQontoReconciliation(dataRoot, reportPath, options = {}) {
     settledAt: tx.settled_at || null,
     emittedAt: tx.emitted_at || null,
     merchant: tx.label || "Unknown",
-    amount: qontoAmount(tx),
+    amount: bankTransactionAmount(tx),
     currency: tx.currency || CURRENCY,
     localAmount: tx.local_amount ?? null,
     localCurrency: tx.local_currency || null,
@@ -712,7 +719,7 @@ function importQontoReconciliation(dataRoot, reportPath, options = {}) {
     cardLastDigits: tx.card_last_digits || null,
     attachmentIds: tx.attachment_ids || [],
     sourceDocument: path.basename(sourceFile),
-    sourceKind: "qonto_api_reconciliation_report"
+    sourceKind: "bank_api_reconciliation_report"
   }));
 
   const uploadMatches = new Map();
@@ -721,7 +728,7 @@ function importQontoReconciliation(dataRoot, reportPath, options = {}) {
     uploadMatches.set(upload.transactionId, {
       transactionId: upload.transactionId,
       invoicePath: upload.file,
-      source: "qonto_upload",
+      source: "bank_upload",
       confidence: 1,
       idempotencyKey: upload.idempotencyKey || null
     });
@@ -734,7 +741,7 @@ function importQontoReconciliation(dataRoot, reportPath, options = {}) {
       dryRunAttachMatches.set(decision.transaction.id, {
         transactionId: decision.transaction.id,
         invoicePath: decision.receipt.file,
-        source: "qonto_decision_attach_dry_run",
+        source: "bank_decision_attach_dry_run",
         confidence: decision.score || null,
         reasons: decision.reasons || []
       });
@@ -745,18 +752,18 @@ function importQontoReconciliation(dataRoot, reportPath, options = {}) {
   const credits = round2(transactions.filter((tx) => tx.amount > 0).reduce((sum, tx) => sum + tx.amount, 0));
   const debits = round2(transactions.filter((tx) => tx.amount < 0).reduce((sum, tx) => sum + tx.amount, 0));
   const debitOnlySnapshot = transactions.length > 0 && debits < 0 && credits === 0;
-  const trustedFullSnapshot = options.trustQontoApi === true && (!debitOnlySnapshot || options.allowDebitOnly === true);
+  const trustedFullSnapshot = (options.trustBankApi === true || options.trustBankApi === true) && (!debitOnlySnapshot || options.allowDebitOnly === true);
   const validation = {
     ok: trustedFullSnapshot,
-    method: "qonto_api_snapshot",
+    method: "bank_api_snapshot",
     scope: debitOnlySnapshot ? "debit_only_expense_reconciliation" : "full_or_mixed_transaction_snapshot",
     sourceReport: path.basename(sourceFile),
     generatedAt: new Date().toISOString(),
     warning: debitOnlySnapshot && options.allowDebitOnly !== true
-      ? "Debit-only Qonto snapshot detected. This is valid for receipt matching, not full CFO reporting. Import all sides or pass allowDebitOnly only for an expenses-only working pack."
-      : options.trustQontoApi === true
-      ? "Trusted because caller explicitly marked Qonto API snapshot as source-of-record for a working pack."
-      : "Not trusted as statement validation. Run with trustQontoApi only for working-pack generation, or provide official statement validation.",
+      ? "Debit-only bank snapshot detected. This is valid for receipt matching, not full CFO reporting. Import all sides or pass allowDebitOnly only for an expenses-only working pack."
+      : (options.trustBankApi === true || options.trustBankApi === true)
+      ? "Trusted because caller explicitly marked bank API snapshot as source-of-record for a working pack."
+      : "Not trusted as statement validation. Run with trustBankApi only for working-pack generation, or provide official statement validation.",
     declaredCreditsTotal: credits,
     parsedCreditsTotal: credits,
     declaredDebitsTotal: debits,
@@ -819,7 +826,7 @@ module.exports = {
   CHART_OF_ACCOUNTS,
   CLASSIFICATION_RULES,
   buildCfoStack,
-  importQontoReconciliation,
+  importBankReconciliation,
   financeStatus,
   normalizeTransactions,
   classifyTransaction,

@@ -1,6 +1,6 @@
 "use strict";
 
-const { HuggingFaceProvider } = require("../providers/huggingface_provider");
+const { ClassifierProvider } = require("../providers/classifier_provider");
 
 function textForMail(request = {}, workflow = {}) {
   const email = request.email || {};
@@ -31,7 +31,7 @@ function escalateMailPolicy(policy, vote) {
       automation_mode: "owner_approval",
       reasons: [
         ...(policy.reasons || []),
-        `HF kitchen worker voted ${label} (${confidence.toFixed(2)})`
+        `classifier worker voted ${label} (${confidence.toFixed(2)})`
       ]
     };
   }
@@ -45,7 +45,7 @@ function escalateMailPolicy(policy, vote) {
       automation_mode: "no_reply",
       reasons: [
         ...(policy.reasons || []),
-        `HF kitchen worker voted spam (${confidence.toFixed(2)})`
+        `classifier worker voted spam (${confidence.toFixed(2)})`
       ]
     };
   }
@@ -53,7 +53,7 @@ function escalateMailPolicy(policy, vote) {
   return policy;
 }
 
-async function applyKitchenWorkers({ request, route, workflow, hf = new HuggingFaceProvider() }) {
+async function applyKitchenWorkers({ request, route, workflow, hf = new ClassifierProvider() }) {
   workflow.kitchen_model_votes = workflow.kitchen_model_votes || [];
   if (!["cold_email_campaign", "mail_labeling", "sales_reply", "daily_communications"].includes(route.category)) {
     return workflow;
@@ -62,9 +62,9 @@ async function applyKitchenWorkers({ request, route, workflow, hf = new HuggingF
   if (!hf.available()) {
     workflow.kitchen_model_votes.push({
       worker: "mail_labeler",
-      provider: "huggingface",
+      provider: "remote",
       status: "skipped",
-      reason: "Hugging Face token not configured"
+      reason: "remote LLM provider token not configured"
     });
     return workflow;
   }
@@ -73,7 +73,7 @@ async function applyKitchenWorkers({ request, route, workflow, hf = new HuggingF
     const vote = await hf.classifyMail(textForMail(request, workflow));
     workflow.kitchen_model_votes.push({
       worker: "mail_labeler",
-      provider: "huggingface",
+      provider: "remote",
       status: "ok",
       model: vote.model,
       topLabel: vote.topLabel,
@@ -87,7 +87,7 @@ async function applyKitchenWorkers({ request, route, workflow, hf = new HuggingF
   } catch (error) {
     workflow.kitchen_model_votes.push({
       worker: "mail_labeler",
-      provider: "huggingface",
+      provider: "remote",
       status: "error",
       error: error.message
     });

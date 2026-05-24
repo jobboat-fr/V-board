@@ -47,7 +47,7 @@ class ExecutiveJudge {
       top_risks: [...new Set(allRisks)].slice(0, 8),
       missing_documents: [...new Set(allMissing)].slice(0, 12),
       mandatory_checks: [...new Set(allChecks)].slice(0, 12),
-      openclaw_handoff_ready: Boolean(workflow?.openclaw_handoff),
+      agent_runtime_handoff_ready: Boolean(workflow?.agent_runtime_handoff),
       mail_label: mailPolicy?.label || null,
       mail_automation_mode: mailPolicy?.automation_mode || null,
       deal_room: dealRoom ? {
@@ -59,10 +59,10 @@ class ExecutiveJudge {
         owner_pass_threshold: dealRoom.owner_pass_threshold
       } : null,
       safety_gates: safety?.gates || [],
-      openclaw_allowed_actions: (workflow?.openclaw_handoff?.channel_actions || [])
+      agent_runtime_allowed_actions: (workflow?.agent_runtime_handoff?.channel_actions || [])
         .filter((item) => this.actionAllowedForDecision({ action: item, requiresOwner }))
         .map((action) => `${action.channel}:${action.action}`),
-      openclaw_blocked_actions: (workflow?.openclaw_handoff?.channel_actions || [])
+      agent_runtime_blocked_actions: (workflow?.agent_runtime_handoff?.channel_actions || [])
         .filter((item) => !this.actionAllowedForDecision({ action: item, requiresOwner }))
         .map((action) => `${action.channel}:${action.action}`),
       next_step: this.nextStep(action, route, dealRoom)

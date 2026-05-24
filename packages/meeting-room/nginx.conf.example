@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────────────────────────
-# Nginx reverse proxy — Hermes Meeting Room
+# Nginx reverse proxy — V-Board Meeting Room
 # TLS termination + rate limiting for port 8790.
 #
 # Place in /etc/nginx/sites-available/vboard-meeting-room

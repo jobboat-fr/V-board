@@ -5,17 +5,17 @@
 Never commit:
 
 - API tokens
-- Railway/Vercel/Qonto keys
+- Railway/Vercel/bank API keys
 - mail credentials
 - WhatsApp session files
-- OpenClaw auth files
+- agent runtime auth files
 - legal/accounting documents
 
 Use `.env` locally and server-side environment files in production.
 
 ## File Access
 
-Read/write APIs are restricted to `AZZCO_DATA_ROOT`.
+Read/write APIs are restricted to `VBOARD_DATA_ROOT`.
 
 The gateway rejects path traversal such as:
 
@@ -30,7 +30,7 @@ Restricted topics:
 - legal
 - accounting
 - fiscal/social
-- bank/Qonto
+- bank/bank API
 - invoices/receipts
 - contracts/statutes
 - secrets/infrastructure internals

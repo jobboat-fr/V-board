@@ -1,22 +1,18 @@
-# Meeting Room — Python dependencies
+# Meeting Room â€” Python dependencies
 # Exact-pinned. Update by bumping the version AND testing before deploying.
 
-# ── Web server ────────────────────────────────────────────────────
+# â”€â”€ Web server â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 fastapi==0.136.1
 uvicorn[standard]==0.46.0
 pydantic==2.13.4
 python-multipart==0.0.27
 
-# ── HTTP client (Tavus REST + ElevenLabs) ─────────────────────────
+# â”€â”€ HTTP client (avatar provider REST + voice provider) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 httpx==0.28.1
 
-# ── AI providers — council (Anthropic + OpenAI + Google) ─────────
-anthropic==0.86.0
-openai==2.24.0
-google-generativeai==0.8.5
+# â”€â”€ AI providers - install your chosen SDK packages or use the platform LLM router) â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-# ── STT — Groq Whisper ────────────────────────────────────────────
-groq==1.2.0
+# â”€â”€ STT - install your chosen speech-to-text SDK package if using SDK mode â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-# ── Config ────────────────────────────────────────────────────────
+# â”€â”€ Config â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 python-dotenv==1.2.2

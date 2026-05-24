@@ -19,8 +19,8 @@ USER node
 EXPOSE 8787
 
 ENV NODE_ENV=production \
-    AZZCO_COUNCIL_HOST=0.0.0.0 \
-    AZZCO_COUNCIL_PORT=8787
+    VBOARD_COUNCIL_HOST=0.0.0.0 \
+    VBOARD_COUNCIL_PORT=8787
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
   CMD node -e "require('http').get('http://127.0.0.1:8787/health',r=>{process.exit(r.statusCode===200?0:1)}).on('error',()=>process.exit(1))"

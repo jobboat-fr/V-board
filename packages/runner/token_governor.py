@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-OpenClaw Token Governor for AZZCO.
+agent runtime Token Governor for VBOARD.
 
 Builds compact, structured context files from docs/accounting folders so the
 LLM can reason from summaries instead of rereading whole archives.
@@ -19,7 +19,7 @@ import zipfile
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
-ROOT = Path(os.environ.get("AZZCO_WORKSPACE", os.environ.get("OPENCLAW_WORKSPACE", "/workspace")))
+ROOT = Path(os.environ.get("VBOARD_WORKSPACE", os.environ.get("AGENT_RUNTIME_WORKSPACE", "/workspace")))
 DOCS = ROOT / "docs"
 ACCOUNTING = ROOT / "accounting"
 OUT = ROOT / "ops" / "context"
@@ -97,7 +97,7 @@ def list_zip(path: Path) -> str:
 def category_for(path: Path, text: str) -> str:
     hay = f"{path.as_posix()} {text[:3000]}".lower()
     checks = [
-        ("bank_statement", r"relev[ée]|statement|qonto|revolut|banque|iban|solde"),
+        ("bank_statement", r"relev[ée]|statement|bank|revolut|banque|iban|solde"),
         ("invoice_receipt", r"facture|invoice|receipt|re[cç]u|tva|vat|paid|payment"),
         ("tax_social", r"imp[oô]t|urssaf|dsn|cfe|is\b|tva|fiscal|social"),
         ("payroll", r"paie|payslip|bulletin|salaire|payroll"),
@@ -294,7 +294,7 @@ def write_outputs(docs: list[dict], invoices: list[dict], transactions: list[dic
     for d in docs:
         categories[d["category"]] = categories.get(d["category"], 0) + 1
     lines = [
-        "# AZZCO Compact Daily Context",
+        "# VBOARD Compact Daily Context",
         f"Generated: {now_iso()}",
         "",
         "## Inventory",

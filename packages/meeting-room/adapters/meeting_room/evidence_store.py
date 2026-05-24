@@ -5,9 +5,9 @@ work also needs an auditable trail: transcript lines, decisions, escalations,
 commitments, avatar sessions, and generated media metadata. This module keeps
 that trail as JSONL files under:
 
-    $AZZCO_DATA_ROOT/meetings/YYYY-MM-DD/<room_id>/
+    $VBOARD_DATA_ROOT/meetings/YYYY-MM-DD/<room_id>/
 
-If AZZCO_DATA_ROOT is not set, it falls back to ./data.
+If VBOARD_DATA_ROOT is not set, it falls back to ./data.
 """
 
 from __future__ import annotations
@@ -29,7 +29,7 @@ def now_iso() -> str:
 
 
 def data_root() -> Path:
-    return security.resolve_data_root(os.getenv("AZZCO_DATA_ROOT", ""))
+    return security.resolve_data_root(os.getenv("VBOARD_DATA_ROOT", ""))
 
 
 def safe_room_id(room_id: str) -> str:

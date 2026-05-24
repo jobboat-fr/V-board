@@ -134,14 +134,14 @@ function evaluateDealRoom({ request = {}, route = {}, workflow = {}, budget = {}
     captain: active ? {
       role: "deal_captain",
       modelAlias: "premium-judge",
-      model: "together/moonshotai/Kimi-K2.5",
+      model: "fallback/premium-deal-model",
       purpose: "Synthesize the team briefs, sharpen the deal strategy, and decide what to ask the owner.",
-      execution_mode: process.env.AZZCO_SYNC_DEAL_CAPTAIN === "1" ? "sync" : "async_recommended"
+      execution_mode: process.env.VBOARD_SYNC_DEAL_CAPTAIN === "1" ? "sync" : "async_recommended"
     } : null,
     team_briefs: active ? teamBriefs({ workflow, score }) : [],
     required_inputs: missing,
     budget_mode: budget.mode || "normal",
-    async_premium_recommended: active && process.env.AZZCO_SYNC_DEAL_CAPTAIN !== "1",
+    async_premium_recommended: active && process.env.VBOARD_SYNC_DEAL_CAPTAIN !== "1",
     owner_approval_required: active,
     external_send_allowed: !active && workflow.mail_policy?.auto_send_allowed === true
   };

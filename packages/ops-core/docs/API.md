@@ -5,7 +5,7 @@ Default port: `8788`.
 Protected routes require:
 
 ```http
-authorization: Bearer $AZZCO_API_TOKEN
+authorization: Bearer $VBOARD_API_TOKEN
 ```
 
 For production app-to-server access, prefer scoped API keys instead of the single legacy root token.
@@ -22,7 +22,7 @@ The command prints the plaintext token once and stores only its SHA-256 hash in 
 Set:
 
 ```bash
-AZZCO_API_KEYS_FILE=/workspace/.secrets/api_keys.json
+VBOARD_API_KEYS_FILE=/workspace/.secrets/api_keys.json
 ```
 
 Useful scopes:
@@ -36,8 +36,8 @@ Useful scopes:
 - `work_orders:write`
 - `finance:read`
 - `finance:write`
-- `qonto:pull`
-- `qonto:import`
+- `bank:pull`
+- `bank:import`
 - `observability:read`
 - `observability:write`
 - `*` for owner/root only
@@ -61,7 +61,7 @@ Returns deterministic routing:
 
 `POST /v1/bridge`
 
-Runs the route policy first. If the task does not require council, no council call is made. If it does require council, the API calls `AZZCO_COUNCIL_URL`.
+Runs the route policy first. If the task does not require council, no council call is made. If it does require council, the API calls `VBOARD_COUNCIL_URL`.
 
 ## Departments
 
@@ -73,7 +73,7 @@ Example:
 
 ```bash
 curl -sS http://127.0.0.1:8788/v1/departments/dispatch \
-  -H "authorization: Bearer $AZZCO_CRM_API_KEY" \
+  -H "authorization: Bearer $VBOARD_CRM_API_KEY" \
   -H "content-type: application/json" \
   -d '{"department":"crm","payload":{"prompt":"Add CRM note","urgency":"P3"}}'
 ```
@@ -96,21 +96,21 @@ Protected live endpoints:
 
 Every API request writes:
 
-- local JSONL: `AZZCO_LOG_DIR/api-events.jsonl`
-- Winston logs: `AZZCO_LOG_DIR/api.log` and `AZZCO_LOG_DIR/api-error.log`
-- optional Supabase table: `AZZCO_SUPABASE_EVENTS_TABLE`
+- local JSONL: `VBOARD_LOG_DIR/api-events.jsonl`
+- Winston logs: `VBOARD_LOG_DIR/api.log` and `VBOARD_LOG_DIR/api-error.log`
+- optional Supabase table: `VBOARD_SUPABASE_EVENTS_TABLE`
 
 The Supabase `service_role` key must stay server-side. The dashboard never receives it.
 
 ## Files
 
-All file operations are scoped to `AZZCO_DATA_ROOT`.
+All file operations are scoped to `VBOARD_DATA_ROOT`.
 
 - `POST /v1/files/read`
 - `POST /v1/files/write`
 - `GET /v1/files/list?path=.`
 
-Requests outside `AZZCO_DATA_ROOT` are rejected.
+Requests outside `VBOARD_DATA_ROOT` are rejected.
 
 ## Work Orders
 
@@ -123,8 +123,8 @@ Work orders are stored as JSONL under the data root.
 
 - `POST /v1/finance/build`
 - `GET /v1/finance/status`
-- `POST /v1/finance/import-qonto`
-- `POST /v1/finance/pull-qonto`
+- `POST /v1/finance/import-bank`
+- `POST /v1/finance/pull-bank`
 
 `POST /v1/finance/build` reads:
 
@@ -136,8 +136,8 @@ It writes accountant-ready artifacts under `finance/reports` and `finance/ledger
 
 Strict default: if bank transactions are absent, or bank validation is missing/failed, the response is `status: "blocked"` and no ledger is generated.
 
-`POST /v1/finance/import-qonto` imports a `qonto_receipt_reconcile*.json` report into `ops/context`. The `reportPath` must be relative to `AZZCO_DATA_ROOT`. By default the import is `imported_unverified`; set `trustQontoApi: true` only when you explicitly accept the Qonto API snapshot as source-of-record for a working pack.
+`POST /v1/finance/import-bank` imports a `bank_receipt_reconcile*.json` report into `ops/context`. The `reportPath` must be relative to `VBOARD_DATA_ROOT`. By default the import is `imported_unverified`; set `trustbank APIApi: true` only when you explicitly accept the bank API API snapshot as source-of-record for a working pack.
 
-Debit-only Qonto reports are treated as expense-reconciliation snapshots, not full finance inputs. They stay blocked unless `allowDebitOnly: true` is explicitly set for an expenses-only pack.
+Debit-only bank API reports are treated as expense-reconciliation snapshots, not full finance inputs. They stay blocked unless `allowDebitOnly: true` is explicitly set for an expenses-only pack.
 
-`POST /v1/finance/pull-qonto` pulls a full credit+debit Qonto API snapshot directly into `ops/context`. It requires `QONTO_AUTH` or `QONTO_LOGIN`/`QONTO_SECRET` in the service environment.
+`POST /v1/finance/pull-bank` pulls a full credit+debit bank API API snapshot directly into `ops/context`. It requires `BANK_API_AUTH` or `BANK_API_LOGIN`/`BANK_API_SECRET` in the service environment.

@@ -1,15 +1,15 @@
 """
-AI Worker Collective — multi-provider meeting council.
+AI Worker Collective â€” multi-model meeting council.
 
 5-stage orchestration:
-  1. Primary (Claude Sonnet)  — role-specialist answer
-  2. Reviewers in parallel    — independent scoring (GPT-4o + Gemini Flash)
-  3. Weighted consensus       — 66% threshold
-  4. Chairman synthesis       — only if consensus fails
-  5. Behavioral overlay       — pattern signals from transcript
+  1. Primary (primary model)  â€” role-specialist answer
+  2. Reviewers in parallel    â€” independent scoring (reviewer models)
+  3. Weighted consensus       â€” 66% threshold
+  4. Chairman synthesis       â€” only if consensus fails
+  5. Behavioral overlay       â€” pattern signals from transcript
 
-The council uses 3 different AI provider families to prevent bias collapse.
-Validated: 70-point harm_risk variance across families when using same provider.
+The council uses 3 different model families to prevent bias collapse.
+Validated against cross-family disagreement in review scoring.
 
 Usage:
   collective = AIWorkerCollective()
@@ -35,30 +35,30 @@ from typing import Any
 
 logger = logging.getLogger("meeting_room.council.collective")
 
-# ─── Worker registry ──────────────────────────────────────────────────────────
+# â”€â”€â”€ Worker registry â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 _WORKERS: dict[str, dict] = {
     "primary": {
-        "family":      "anthropic",
-        "model":       os.getenv("COUNCIL_PRIMARY_MODEL",    "claude-sonnet-4-5-20250929"),
+        "family":      "primary",
+        "model":       os.getenv("PRIMARY_LLM_MODEL",    "primary-meeting-model"),
         "vote_weight": 1.5,
         "role":        "ROLE_SPECIALIST",
     },
     "reviewer_1": {
-        "family":      "openai",
-        "model":       os.getenv("COUNCIL_REVIEWER_1_MODEL", "gpt-4o"),
+        "family":      "reviewer",
+        "model":       os.getenv("REVIEWER_LLM_MODEL", "reviewer-meeting-model"),
         "vote_weight": 1.3,
         "role":        "BALANCED_REVIEWER",
     },
     "reviewer_2": {
-        "family":      "google",
-        "model":       os.getenv("COUNCIL_REVIEWER_2_MODEL", "gemini-2.5-flash"),
+        "family":      "chair",
+        "model":       os.getenv("CHAIR_REVIEWER_LLM_MODEL", "chair-reviewer-model"),
         "vote_weight": 1.2,
         "role":        "FAST_REVIEWER",
     },
     "chairman": {
-        "family":      "google",
-        "model":       os.getenv("COUNCIL_CHAIRMAN_MODEL",   "gemini-2.5-flash"),
+        "family":      "chair",
+        "model":       os.getenv("CHAIR_LLM_MODEL",   "chair-reviewer-model"),
         "vote_weight": 2.0,
         "role":        "CHAIRMAN",
     },
@@ -87,7 +87,7 @@ Your job: synthesize a final, balanced answer that addresses the reviewers' conc
 Use the same JSON schema as the primary advisor's output."""
 
 
-# ─── Main collective ──────────────────────────────────────────────────────────
+# â”€â”€â”€ Main collective â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class AIWorkerCollective:
     def __init__(self, workers: dict | None = None):
@@ -104,8 +104,8 @@ class AIWorkerCollective:
           transcript            str   (recent meeting context)
           advisor_id            str   (which advisor is speaking)
           primary_system_prompt str
-          primary_user_prompt   str   (or callable → str)
-          reviewer_user_prompt  callable(transcript, primary_output) → str   (optional)
+          primary_user_prompt   str   (or callable â†’ str)
+          reviewer_user_prompt  callable(transcript, primary_output) â†’ str   (optional)
         """
         run_id = str(uuid.uuid4())
         start_total = time.monotonic()
@@ -118,7 +118,7 @@ class AIWorkerCollective:
             "verdict":   {},
         }
 
-        # ── Stage 1: Primary ──────────────────────────────────────────────
+        # â”€â”€ Stage 1: Primary â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         primary_cfg = self.workers["primary"]
         primary_prompt = (
             scenario["primary_user_prompt"]()
@@ -142,7 +142,7 @@ class AIWorkerCollective:
             "latency_ms":  primary_resp["latency_ms"],
         }
 
-        # ── Stage 2: Parallel reviews ─────────────────────────────────────
+        # â”€â”€ Stage 2: Parallel reviews â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         reviewer_keys = ["reviewer_1", "reviewer_2"]
         reviewer_prompt_fn = scenario.get("reviewer_user_prompt") or _default_reviewer_prompt
         review_tasks = [
@@ -158,11 +158,11 @@ class AIWorkerCollective:
         reviews = await asyncio.gather(*review_tasks)
         record["stages"]["reviews"] = list(reviews)
 
-        # ── Stage 3: Weighted consensus voting ────────────────────────────
+        # â”€â”€ Stage 3: Weighted consensus voting â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         voting = self._compute_voting(reviews)
         record["stages"]["voting"] = voting
 
-        # ── Stage 4: Chairman (only if consensus fails) ───────────────────
+        # â”€â”€ Stage 4: Chairman (only if consensus fails) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         chairman_resp = None
         if not voting["consensus"]:
             chairman_resp = await _run_chairman(
@@ -173,11 +173,11 @@ class AIWorkerCollective:
             )
             record["stages"]["chairman"] = chairman_resp
 
-        # ── Stage 5: Behavioral overlay ───────────────────────────────────
+        # â”€â”€ Stage 5: Behavioral overlay â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         if scenario.get("transcript"):
             record["stages"]["behavioral"] = _run_behavioral_overlay(scenario["transcript"])
 
-        # ── Final verdict ─────────────────────────────────────────────────
+        # â”€â”€ Final verdict â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         final_output = (
             chairman_resp["output"] if chairman_resp
             else primary_resp["output"]
@@ -191,7 +191,7 @@ class AIWorkerCollective:
             "behavioral_signals": record["stages"].get("behavioral", {}).get("signals", []),
         }
 
-        # ── Totals ────────────────────────────────────────────────────────
+        # â”€â”€ Totals â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         all_calls = (
             [record["stages"]["primary"]]
             + list(record["stages"]["reviews"])
@@ -229,7 +229,7 @@ class AIWorkerCollective:
         }
 
 
-# ─── Helpers ──────────────────────────────────────────────────────────────────
+# â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 async def _run_reviewer(
     key: str,
@@ -270,7 +270,7 @@ async def _run_chairman(
     reviews: list[dict],
 ) -> dict:
     reviews_summary = "\n".join(
-        f"[{r['reviewer_role'].upper()}] overall={r['scores'].get('overall',50)} — {json.dumps(r['scores'])}"
+        f"[{r['reviewer_role'].upper()}] overall={r['scores'].get('overall',50)} â€” {json.dumps(r['scores'])}"
         for r in reviews
     )
     prompt = (
@@ -350,12 +350,12 @@ async def _llm_call(*, family: str, model: str, system: str, user: str, temperat
     output = ""
     cost   = 0.0
 
-    if family == "anthropic":
-        output, cost = await _call_anthropic(model, system, user, temperature, max_tokens)
-    elif family == "openai":
-        output, cost = await _call_openai(model, system, user, temperature, max_tokens)
-    elif family == "google":
-        output, cost = await _call_google(model, system, user, temperature, max_tokens)
+    if family == "primary":
+        output, cost = await _call_primary(model, system, user, temperature, max_tokens)
+    elif family == "reviewer":
+        output, cost = await _call_reviewer(model, system, user, temperature, max_tokens)
+    elif family == "chair":
+        output, cost = await _call_chair(model, system, user, temperature, max_tokens)
     else:
         raise ValueError(f"Unknown provider family: {family}")
 
@@ -366,47 +366,98 @@ async def _llm_call(*, family: str, model: str, system: str, user: str, temperat
     }
 
 
-async def _call_anthropic(model, system, user, temperature, max_tokens):
-    from anthropic import AsyncAnthropic
-    client = AsyncAnthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
-    msg = await client.messages.create(
-        model=model, system=system,
-        messages=[{"role": "user", "content": user}],
-        temperature=temperature, max_tokens=max_tokens,
-    )
-    text = msg.content[0].text if msg.content else ""
-    # Approx cost: claude-sonnet ~$3/$15 per 1M in/out tokens
-    cost = (msg.usage.input_tokens * 3 + msg.usage.output_tokens * 15) / 1_000_000
-    return text, round(cost, 6)
-
-
-async def _call_openai(model, system, user, temperature, max_tokens):
-    from openai import AsyncOpenAI
-    client = AsyncOpenAI(api_key=os.environ["OPENAI_API_KEY"])
-    resp = await client.chat.completions.create(
+async def _call_primary(model, system, user, temperature, max_tokens):
+    return await _call_chat_completion(
+        api_key_env="PRIMARY_LLM_API_KEY",
+        base_url_env="PRIMARY_LLM_API_BASE_URL",
         model=model,
-        messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
-        temperature=temperature, max_tokens=max_tokens,
+        system=system,
+        user=user,
+        temperature=temperature,
+        max_tokens=max_tokens,
+        input_price_per_million=3.0,
+        output_price_per_million=15.0,
     )
-    text = resp.choices[0].message.content or ""
-    # GPT-4o ~$2.50/$10 per 1M in/out tokens
-    usage = resp.usage
-    cost  = (usage.prompt_tokens * 2.5 + usage.completion_tokens * 10) / 1_000_000
+
+
+async def _call_reviewer(model, system, user, temperature, max_tokens):
+    return await _call_chat_completion(
+        api_key_env="REVIEWER_LLM_API_KEY",
+        base_url_env="REVIEWER_LLM_API_BASE_URL",
+        model=model,
+        system=system,
+        user=user,
+        temperature=temperature,
+        max_tokens=max_tokens,
+        input_price_per_million=2.5,
+        output_price_per_million=10.0,
+    )
+
+
+async def _call_chair(model, system, user, temperature, max_tokens):
+    return await _call_chat_completion(
+        api_key_env="CHAIR_LLM_API_KEY",
+        base_url_env="CHAIR_LLM_API_BASE_URL",
+        model=model,
+        system=system,
+        user=user,
+        temperature=temperature,
+        max_tokens=max_tokens,
+        input_price_per_million=0.075,
+        output_price_per_million=0.30,
+    )
+
+
+async def _call_chat_completion(
+    *,
+    api_key_env: str,
+    base_url_env: str,
+    model: str,
+    system: str,
+    user: str,
+    temperature: float,
+    max_tokens: int,
+    input_price_per_million: float,
+    output_price_per_million: float,
+):
+    api_key = os.getenv(api_key_env) or os.getenv("LLM_ROUTER_API_KEY", "")
+    base_url = os.getenv(base_url_env) or os.getenv("LLM_ROUTER_API_BASE_URL", "")
+    if not api_key or not base_url:
+        raise RuntimeError(f"{api_key_env} and {base_url_env} or LLM_ROUTER_API_* must be configured")
+
+    try:
+        import httpx
+    except ImportError as exc:
+        raise RuntimeError("httpx is required for LLM router calls") from exc
+
+    payload = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": system},
+            {"role": "user", "content": user},
+        ],
+        "temperature": temperature,
+        "max_tokens": max_tokens,
+    }
+    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+    async with httpx.AsyncClient(timeout=60.0) as client:
+        response = await client.post(f"{base_url.rstrip('/')}/chat/completions", headers=headers, json=payload)
+        response.raise_for_status()
+        data = response.json()
+
+    choices = data.get("choices") or []
+    text = ""
+    if choices:
+        message = choices[0].get("message") or {}
+        text = message.get("content") or choices[0].get("text") or ""
+
+    usage = data.get("usage") or {}
+    prompt_tokens = float(usage.get("prompt_tokens") or usage.get("input_tokens") or 0)
+    completion_tokens = float(usage.get("completion_tokens") or usage.get("output_tokens") or 0)
+    cost = (prompt_tokens * input_price_per_million + completion_tokens * output_price_per_million) / 1_000_000
     return text, round(cost, 6)
-
-
-async def _call_google(model, system, user, temperature, max_tokens):
-    import google.generativeai as genai
-    genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
-    gmodel = genai.GenerativeModel(model, system_instruction=system)
-    config = genai.types.GenerationConfig(temperature=temperature, max_output_tokens=max_tokens)
-    resp   = await asyncio.to_thread(gmodel.generate_content, user, generation_config=config)
-    text   = resp.text if hasattr(resp, "text") else ""
-    # Gemini Flash ~$0.075/$0.30 per 1M in/out tokens
-    cost   = 0.0001  # rough estimate — Gemini doesn't always expose usage
-    return text, cost
-
 
 def _now_iso() -> str:
     from datetime import datetime, timezone
     return datetime.now(timezone.utc).isoformat()
+
