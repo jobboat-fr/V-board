@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 200" width="900" height="200">
+  <defs>
+    <linearGradient id="bggrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0d0b08"/>
+      <stop offset="100%" stop-color="#131008"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#7eca6c"/>
+      <stop offset="60%" stop-color="#b8d44a"/>
+      <stop offset="100%" stop-color="#e8a020"/>
+    </linearGradient>
+    <linearGradient id="vg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7eca6c"/>
+      <stop offset="100%" stop-color="#e8a020"/>
+    </linearGradient>
+    <linearGradient id="ring" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#e8a020"/>
+      <stop offset="100%" stop-color="#c87a10"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- background -->
+  <rect width="900" height="200" fill="url(#bggrad)" rx="12"/>
+
+  <!-- subtle grid lines -->
+  <line x1="0" y1="50" x2="900" y2="50" stroke="#1a1710" stroke-width="1"/>
+  <line x1="0" y1="100" x2="900" y2="100" stroke="#1a1710" stroke-width="1"/>
+  <line x1="0" y1="150" x2="900" y2="150" stroke="#1a1710" stroke-width="1"/>
+  <line x1="150" y1="0" x2="150" y2="200" stroke="#1a1710" stroke-width="1"/>
+  <line x1="300" y1="0" x2="300" y2="200" stroke="#1a1710" stroke-width="1"/>
+  <line x1="450" y1="0" x2="450" y2="200" stroke="#1a1710" stroke-width="1"/>
+  <line x1="600" y1="0" x2="600" y2="200" stroke="#1a1710" stroke-width="1"/>
+  <line x1="750" y1="0" x2="750" y2="200" stroke="#1a1710" stroke-width="1"/>
+
+  <!-- border -->
+  <rect width="900" height="200" fill="none" stroke="#2a2010" stroke-width="1.5" rx="12"/>
+
+  <!-- top accent line -->
+  <rect x="0" y="0" width="900" height="2" fill="url(#accent)" rx="12"/>
+
+  <!-- logo badge (left) -->
+  <circle cx="80" cy="100" r="44" fill="#1a1610" stroke="url(#ring)" stroke-width="1.5"/>
+  <circle cx="80" cy="100" r="37" fill="none" stroke="#2a2010" stroke-width="1"/>
+  <path d="M60 76 L80 124 L100 76" fill="none" stroke="url(#vg)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)"/>
+  <circle cx="80" cy="124" r="3.5" fill="#7eca6c" filter="url(#glow)"/>
+
+  <!-- V-BOARD wordmark -->
+  <text x="145" y="88" font-family="'SF Pro Display', 'Inter', 'Helvetica Neue', Arial, sans-serif" font-weight="900" font-size="44" fill="#ffffff" letter-spacing="-1">V-BOARD</text>
+
+  <!-- tagline -->
+  <text x="147" y="118" font-family="'SF Mono', 'JetBrains Mono', 'Courier New', monospace" font-size="13" fill="#7eca6c" letter-spacing="2">YOUR ENTIRE OPS TEAM, AUTOMATED.</text>
+
+  <!-- bottom-right badges -->
+  <!-- Open Source badge -->
+  <rect x="644" y="154" width="100" height="24" rx="12" fill="#1a1a14" stroke="#2e2c1a" stroke-width="1"/>
+  <text x="694" y="170" font-family="'SF Mono', monospace" font-size="10" fill="#888" text-anchor="middle" letter-spacing="1">MIT LICENSE</text>
+
+  <!-- status badge -->
+  <rect x="756" y="154" width="118" height="24" rx="12" fill="#0e1e0e" stroke="#2e4a1a" stroke-width="1"/>
+  <circle cx="768" cy="166" r="4" fill="#7eca6c"/>
+  <text x="832" y="170" font-family="'SF Mono', monospace" font-size="10" fill="#7eca6c" text-anchor="middle" letter-spacing="1">OPEN SOURCE</text>
+
+  <!-- route-engine terminal widget (bottom-left) -->
+  <rect x="145" y="142" width="470" height="36" rx="6" fill="#111008" stroke="#2a2010" stroke-width="1"/>
+  <circle cx="161" cy="160" r="4" fill="#ff5f57"/>
+  <circle cx="174" cy="160" r="4" fill="#febc2e"/>
+  <circle cx="187" cy="160" r="4" fill="#28c840"/>
+  <text x="202" y="165" font-family="'SF Mono', 'JetBrains Mono', monospace" font-size="11" fill="#666">route-engine</text>
+  <text x="284" y="165" font-family="'SF Mono', monospace" font-size="11" fill="#444">::</text>
+  <text x="298" y="165" font-family="'SF Mono', monospace" font-size="11" fill="#e8a020">live</text>
+  <circle cx="490" cy="160" r="4" fill="#7eca6c"/>
+  <text x="500" y="165" font-family="'SF Mono', monospace" font-size="11" fill="#7eca6c">connected</text>
+</svg>
