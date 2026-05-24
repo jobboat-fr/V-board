@@ -6,7 +6,7 @@ function dashboardHtml() {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>AZZCO Ops Live</title>
+  <title>VBOARD Ops Live</title>
   <style>
     :root {
       color-scheme: dark;
@@ -107,7 +107,7 @@ function dashboardHtml() {
 <body>
   <header>
     <div>
-      <h1>AZZCO Ops Live</h1>
+      <h1>VBOARD Ops Live</h1>
       <div class="sub">API health, routing, auth scopes, request logs, Supabase sink</div>
     </div>
     <div class="pill" id="refreshState">Starting</div>
@@ -197,7 +197,7 @@ function dashboardHtml() {
   <script>
     const $ = (id) => document.getElementById(id);
     const tokenInput = $("token");
-    tokenInput.value = localStorage.getItem("azzco.ops.token") || "";
+    tokenInput.value = localStorage.getItem("vboard.ops.token") || "";
 
     function authHeaders() {
       const token = tokenInput.value.trim();
@@ -277,8 +277,8 @@ function dashboardHtml() {
       } catch {}
       $("refreshState").textContent = "Live";
     }
-    $("saveToken").onclick = () => { localStorage.setItem("azzco.ops.token", tokenInput.value.trim()); refresh(); };
-    $("clearToken").onclick = () => { localStorage.removeItem("azzco.ops.token"); tokenInput.value = ""; refresh(); };
+    $("saveToken").onclick = () => { localStorage.setItem("vboard.ops.token", tokenInput.value.trim()); refresh(); };
+    $("clearToken").onclick = () => { localStorage.removeItem("vboard.ops.token"); tokenInput.value = ""; refresh(); };
     $("refreshNow").onclick = refresh;
     $("sendObsTest").onclick = async () => {
       try {

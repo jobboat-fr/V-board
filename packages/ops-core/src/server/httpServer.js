@@ -9,8 +9,8 @@ const { WorkOrderStore } = require("../core/workOrderStore");
 const { readText, writeText, listFiles } = require("../core/safeFs");
 const { sendJson, sendHtml, readJson } = require("./json");
 const { authorize } = require("./auth");
-const { buildCfoStack, financeStatus, importQontoReconciliation } = require("../finance/cfoStack");
-const { pullQontoSnapshot } = require("../finance/qontoApi");
+const { buildCfoStack, financeStatus, importBankReconciliation } = require("../finance/cfoStack");
+const { pullBankSnapshot } = require("../finance/bankApi");
 const { dashboardHtml } = require("./dashboard");
 const { createObservability } = require("../observability/logger");
 
@@ -62,7 +62,7 @@ function createServer(config) {
       if (req.method === "GET" && requestUrl.pathname === "/health") {
         return sendJson(res, 200, {
           ok: true,
-          service: "azzco-ops-core",
+          service: "vboard-ops-core",
           version: "0.1.0",
           role: "runner-operator-or-council-gateway",
           serverName: config.observability.serverName,
@@ -73,7 +73,6 @@ function createServer(config) {
       if (req.method === "GET" && requestUrl.pathname === "/ready") {
         return sendJson(res, 200, {
           ok: true,
-          dataRoot: config.dataRoot,
           councilConfigured: Boolean(config.council.token),
           authConfigured: Boolean(config.api.token || config.api.keysFile || config.api.keysJson),
           observabilityConfigured: true,
@@ -181,13 +180,13 @@ function createServer(config) {
         return sendJson(res, 200, financeStatus(config.dataRoot));
       }
 
-      if (req.method === "POST" && requestUrl.pathname === "/v1/finance/import-qonto") {
+      if (req.method === "POST" && requestUrl.pathname === "/v1/finance/import-bank") {
         const body = await readJson(req, config.limits.maxBodyBytes);
-        if (!body.reportPath) return sendJson(res, 400, { ok: false, error: "QONTO_REPORT_PATH_REQUIRED" });
-        return sendJson(res, 200, importQontoReconciliation(config.dataRoot, body.reportPath, {
+        if (!body.reportPath) return sendJson(res, 400, { ok: false, error: "BANK_REPORT_PATH_REQUIRED" });
+        return sendJson(res, 200, importBankReconciliation(config.dataRoot, body.reportPath, {
           restrictToDataRoot: true,
           contextDir: body.contextDir,
-          trustQontoApi: body.trustQontoApi === true,
+          trustBankApi: body.trustBankApi === true,
           includeDryRunAttach: body.includeDryRunAttach === true,
           allowDebitOnly: body.allowDebitOnly === true,
           openingBalance: body.openingBalance,
@@ -195,9 +194,9 @@ function createServer(config) {
         }));
       }
 
-      if (req.method === "POST" && requestUrl.pathname === "/v1/finance/pull-qonto") {
+      if (req.method === "POST" && requestUrl.pathname === "/v1/finance/pull-bank") {
         const body = await readJson(req, config.limits.maxBodyBytes);
-        return sendJson(res, 200, await pullQontoSnapshot(config.dataRoot, {
+        return sendJson(res, 200, await pullBankSnapshot(config.dataRoot, {
           contextDir: body.contextDir,
           since: body.since,
           openingBalance: body.openingBalance,
@@ -217,7 +216,7 @@ function createServer(config) {
 function startServer(config) {
   const server = createServer(config);
   server.listen(config.api.port, config.api.host, () => {
-    process.stdout.write(`azzco-ops-core listening on http://${config.api.host}:${config.api.port}\n`);
+    process.stdout.write(`vboard-ops-core listening on http://${config.api.host}:${config.api.port}\n`);
   });
   return server;
 }

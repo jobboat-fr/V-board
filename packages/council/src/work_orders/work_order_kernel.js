@@ -129,7 +129,7 @@ function buildWorkOrder({ request = {}, route = {}, workflow = {}, safety = {}, 
       next_status: status === "waiting_owner" ? "approved_or_rejected_by_owner" : "execute_or_archive",
       next_required_actor: status === "waiting_owner" ? "owner" : departmentKey,
       close_condition: status === "ready_to_execute"
-        ? "OpenClaw executes allowed action and writes CRM/audit result"
+        ? "agent runtime executes allowed action and writes CRM/audit result"
         : status === "blocked"
           ? "Owner reviews blocked request or leaves archived"
           : "Report/draft delivered and recorded"

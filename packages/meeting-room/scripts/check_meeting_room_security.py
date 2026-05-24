@@ -39,7 +39,7 @@ def main() -> int:
     server    = read("adapters/meeting_room/server.py")
     security  = read("adapters/meeting_room/security.py")
     evidence  = read("adapters/meeting_room/evidence_store.py")
-    tavus     = read("adapters/meeting_room/tavus.py")
+    avatar     = read("adapters/meeting_room/avatar.py")
     dockerfile = read("Dockerfile")
     compose   = read("docker-compose.yml")
 
@@ -62,14 +62,14 @@ def main() -> int:
         "evidence uses path containment":
             "security.assert_under_root" in evidence,
 
-        "tavus redacts provider errors":
-            "redact_secret" in tavus and "_clean_error" in tavus,
+        "avatar redacts provider errors":
+            "redact_secret" in avatar and "_clean_error" in avatar,
 
-        "tavus requires https base url":
-            "Tavus base URL must use https" in tavus,
+        "avatar requires https base url":
+            "avatar provider base URL must use https" in avatar,
 
         "container runs non-root":
-            "USER hermes" in dockerfile,
+            "USER vboard" in dockerfile,
 
         "container requires auth by default":
             "MEETING_ROOM_REQUIRE_TOKEN=true" in dockerfile,

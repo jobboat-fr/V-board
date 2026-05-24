@@ -1,20 +1,23 @@
 {
-  "name": "@azzco/v-board",
-  "version": "0.1.0",
-  "private": true,
-  "description": "AZZCO V-Board — deterministic AI operations infrastructure for two-server enterprise automation",
-  "workspaces": [
-    "packages/ops-core",
-    "packages/council"
-  ],
-  "scripts": {
-    "test": "npm run test --workspaces --if-present",
-    "lint": "npm run lint --workspaces --if-present",
-    "doctor": "npm run doctor --workspaces --if-present",
-    "build": "npm run build --workspaces --if-present"
-  },
-  "engines": {
-    "node": ">=20"
-  },
-  "license": "MIT"
+    "name":  "@vboard/v-board",
+    "version":  "0.1.0",
+    "private":  true,
+    "description":  "Your entire ops team, automated.",
+    "workspaces":  [
+                       "packages/ops-core",
+                       "packages/council"
+                   ],
+    "scripts":  {
+                    "test":  "npm run test --workspaces --if-present",
+                    "lint":  "npm run lint --workspaces --if-present",
+                    "doctor":  "npm run doctor --workspaces --if-present",
+                    "build":  "npm run build --workspaces --if-present",
+                    "verify":  "npm test --workspaces --if-present",
+                    "demo:meeting":  "node scripts/run_python.js packages/meeting-room/scripts/demo_meeting_room.py",
+                    "test:meeting":  "node scripts/run_python.js -m pytest packages/meeting-room/tests -q"
+                },
+    "engines":  {
+                    "node":  "\u003e=20"
+                },
+    "license":  "MIT"
 }

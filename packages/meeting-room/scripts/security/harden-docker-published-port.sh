@@ -5,13 +5,13 @@ set -eu
 # a DOCKER-USER rule. Docker keeps this chain across container restarts.
 #
 # Usage:
-#   sudo AZZCO_BLOCK_PUBLIC_PORT=63118 ./scripts/security/harden-docker-published-port.sh
+#   sudo VBOARD_BLOCK_PUBLIC_PORT=63118 ./scripts/security/harden-docker-published-port.sh
 #
 # Optional:
-#   AZZCO_PUBLIC_IFACE=eth0     # override auto-detected public interface
+#   VBOARD_PUBLIC_IFACE=eth0     # override auto-detected public interface
 
-PORT="${AZZCO_BLOCK_PUBLIC_PORT:-${1:-63118}}"
-IFACE="${AZZCO_PUBLIC_IFACE:-}"
+PORT="${VBOARD_BLOCK_PUBLIC_PORT:-${1:-63118}}"
+IFACE="${VBOARD_PUBLIC_IFACE:-}"
 
 case "$PORT" in
     *[!0-9]*|"") echo "invalid port: $PORT" >&2; exit 2 ;;
@@ -22,7 +22,7 @@ if [ -z "$IFACE" ]; then
 fi
 
 if [ -z "$IFACE" ]; then
-    echo "could not detect public interface; set AZZCO_PUBLIC_IFACE" >&2
+    echo "could not detect public interface; set VBOARD_PUBLIC_IFACE" >&2
     exit 2
 fi
 

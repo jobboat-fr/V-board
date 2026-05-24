@@ -8,36 +8,36 @@ npm run mcp
 
 The server uses JSON-RPC over stdio and exposes these tools:
 
-- `azzco_route`
-- `azzco_bridge`
-- `azzco_file_read`
-- `azzco_file_write`
-- `azzco_file_list`
-- `azzco_work_order_create`
-- `azzco_work_order_list`
-- `azzco_finance_build`
-- `azzco_finance_status`
-- `azzco_finance_import_qonto`
-- `azzco_finance_pull_qonto`
+- `vboard_route`
+- `vboard_bridge`
+- `vboard_file_read`
+- `vboard_file_write`
+- `vboard_file_list`
+- `vboard_work_order_create`
+- `vboard_work_order_list`
+- `vboard_finance_build`
+- `vboard_finance_status`
+- `vboard_finance_import_bank`
+- `vboard_finance_pull_bank`
 
-Finance tools are deterministic and evidence-bound. `azzco_finance_build` refuses to generate a ledger if bank transactions are absent or bank-statement validation is not `ok: true`.
+Finance tools are deterministic and evidence-bound. `vboard_finance_build` refuses to generate a ledger if bank transactions are absent or bank-statement validation is not `ok: true`.
 
-`azzco_finance_import_qonto` converts an existing Qonto reconciliation JSON report into normalized finance context. It only reads reports under `AZZCO_DATA_ROOT`.
+`vboard_finance_import_bank` converts an existing bank API reconciliation JSON report into normalized finance context. It only reads reports under `VBOARD_DATA_ROOT`.
 
-`azzco_finance_pull_qonto` pulls both credit and debit sides from Qonto into normalized context. It requires Qonto credentials in the service environment.
+`vboard_finance_pull_bank` pulls both credit and debit sides from bank API into normalized context. It requires bank API credentials in the service environment.
 
 Example MCP server config:
 
 ```json
 {
   "servers": {
-    "azzco-ops-core": {
+    "vboard-ops-core": {
       "type": "stdio",
       "command": "node",
-      "args": ["/opt/azzco-ops-core/src/cli.js", "mcp"],
+      "args": ["/opt/vboard-ops-core/src/cli.js", "mcp"],
       "env": {
-        "AZZCO_DATA_ROOT": "/var/lib/azzco-ops-core",
-        "AZZCO_COUNCIL_URL": "http://127.0.0.1:8787/route"
+        "VBOARD_DATA_ROOT": "/var/lib/vboard-ops-core",
+        "VBOARD_COUNCIL_URL": "http://127.0.0.1:8787/route"
       }
     }
   }

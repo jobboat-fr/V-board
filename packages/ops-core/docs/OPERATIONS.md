@@ -5,11 +5,11 @@
 The ops-core container runs the API/MCP gateway with:
 
 ```bash
-AZZCO_DATA_ROOT=/workspace
-AZZCO_API_HOST=0.0.0.0
-AZZCO_API_PORT=8788
-AZZCO_COUNCIL_URL=http://council:8787/route
-AZZCO_API_KEYS_FILE=/workspace/.secrets/api_keys.json
+VBOARD_DATA_ROOT=/workspace
+VBOARD_API_HOST=0.0.0.0
+VBOARD_API_PORT=8788
+VBOARD_COUNCIL_URL=http://council:8787/route
+VBOARD_API_KEYS_FILE=/workspace/.secrets/api_keys.json
 ```
 
 Runner (ops-core + runner containers) is allowed to send and write CRM only after policy approval.
@@ -21,18 +21,18 @@ Council runs the same core for local work-order storage and MCP read/write, but 
 Council uses its own scoped key registry:
 
 ```bash
-AZZCO_DATA_ROOT=/workspace
-AZZCO_API_HOST=0.0.0.0
-AZZCO_API_PORT=8787
-AZZCO_COUNCIL_URL=http://127.0.0.1:8787/route
-AZZCO_API_KEYS_FILE=/workspace/.secrets/api_keys.json
+VBOARD_DATA_ROOT=/workspace
+VBOARD_API_HOST=0.0.0.0
+VBOARD_API_PORT=8787
+VBOARD_COUNCIL_URL=http://127.0.0.1:8787/route
+VBOARD_API_KEYS_FILE=/workspace/.secrets/api_keys.json
 ```
 
 Generate one key per external integration. Never reuse the owner/root key for regular applications.
 
 ```bash
 node src/cli.js keys issue --name crm-sales --scopes route:read,department:dispatch,work_orders:read,work_orders:write,files:read --file .secrets/api_keys.json
-node src/cli.js keys issue --name finance-qonto-sync --scopes finance:read,finance:write,qonto:pull,qonto:import --file .secrets/api_keys.json
+node src/cli.js keys issue --name finance-bank-sync --scopes finance:read,finance:write,bank:pull,bank:import --file .secrets/api_keys.json
 node src/cli.js keys issue --name devops-audit --scopes route:read,bridge:write,department:dispatch,work_orders:read,files:read --file .secrets/api_keys.json
 ```
 

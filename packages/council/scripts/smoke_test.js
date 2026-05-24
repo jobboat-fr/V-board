@@ -1,9 +1,9 @@
 "use strict";
 
-const { AzzcoCouncilEngine } = require("../src");
+const { VBoardCouncilEngine } = require("../src");
 
 (async () => {
-  const engine = new AzzcoCouncilEngine();
+  const engine = new VBoardCouncilEngine();
   const tests = [
     {
       prompt: "Check missing invoices from bank transactions and warn me if there is legal or fiscal risk.",
@@ -12,7 +12,7 @@ const { AzzcoCouncilEngine } = require("../src");
     },
     {
       prompt: "Prepare a cold email campaign for a French clinic that has manual appointment handling and a public website.",
-      channel: "openclaw",
+      channel: "agent-runtime",
       owner: true,
       direction: "outbound",
       cold: true,
@@ -25,7 +25,7 @@ const { AzzcoCouncilEngine } = require("../src");
       }
     },
     {
-      prompt: "Label this email and decide if OpenClaw may send automatically.",
+      prompt: "Label this email and decide if agent runtime may send automatically.",
       channel: "email",
       owner: true,
       email: {
@@ -60,3 +60,4 @@ const { AzzcoCouncilEngine } = require("../src");
   console.error(err);
   process.exit(1);
 });
+

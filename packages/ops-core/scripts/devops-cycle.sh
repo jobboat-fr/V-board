@@ -14,7 +14,7 @@ npm run doctor
 
 echo "4/5 docker build check"
 if command -v docker >/dev/null 2>&1; then
-  docker build -t azzco/ops-core:devops-cycle .
+  docker build -t vboard/ops-core:devops-cycle .
 else
   echo "docker not found; skipping docker build"
 fi

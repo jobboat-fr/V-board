@@ -15,7 +15,7 @@ doctor:
 	npm run doctor
 
 docker-build:
-	docker build -t azzco/ops-core:local .
+	docker build -t vboard/ops-core:local .
 
 docker-run:
 	docker compose up --build

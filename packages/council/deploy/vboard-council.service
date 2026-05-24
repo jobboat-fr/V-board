@@ -1,0 +1,27 @@
+[Unit]
+Description=VBOARD Council AI Server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/vboard-council/core
+EnvironmentFile=/etc/vboard-council.env
+ExecStart=/usr/bin/node /opt/vboard-council/core/src/server.js
+Restart=always
+RestartSec=5
+User=vboard
+Group=vboard
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+# Council writes to its data/ directory for route log and budget state
+ReadWritePaths=/opt/vboard-council/core/data
+
+# Standard output to journal (journalctl -u vboard-council -f)
+StandardOutput=append:/var/log/vboard/council.log
+StandardError=append:/var/log/vboard/council-error.log
+
+[Install]
+WantedBy=multi-user.target

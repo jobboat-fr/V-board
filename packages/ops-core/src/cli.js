@@ -8,8 +8,8 @@ const { startMcpServer } = require("./mcp/server");
 const { classify } = require("./core/routePolicy");
 const { routeOrBridge } = require("./core/bridgeClient");
 const { resolveSafe } = require("./core/safeFs");
-const { buildCfoStack, financeStatus, importQontoReconciliation } = require("./finance/cfoStack");
-const { pullQontoSnapshot } = require("./finance/qontoApi");
+const { buildCfoStack, financeStatus, importBankReconciliation } = require("./finance/cfoStack");
+const { pullBankSnapshot } = require("./finance/bankApi");
 const { createApiKey, saveApiKey } = require("./server/apiKeys");
 
 function readStdinJson() {
@@ -27,7 +27,7 @@ const DOCTOR_FIXTURES = [
   { name: "legal_council", expect: "council_required", payload: { category: "legal_accounting", urgency: "P1", prompt: "Check urssaf tax dsn filing." } },
   { name: "incident_council", expect: "council_required", payload: { prompt: "p0 data leak breach server down active attack." } },
   { name: "restricted_council", expect: "council_required", payload: { urgency: "P3", temperature: 10, prompt: "Review contract statuts kbis." } },
-  { name: "invoice_council", expect: "council_required", payload: { prompt: "invoice receipt bank transaction qonto." } },
+  { name: "invoice_council", expect: "council_required", payload: { prompt: "invoice receipt bank transaction reconciliation." } },
   // should be review first
   { name: "cold_no_evidence", expect: "runner_review_first", payload: { category: "cold_email_campaign", urgency: "P3", temperature: 20, mail_label: "cold_mail", owner: true, prompt: "Cold campaign no lead data." } }
 ];
@@ -49,7 +49,7 @@ async function doctor(config) {
 
   const apiAuthConfigured = Boolean(config.api.token || config.api.keysFile || config.api.keysJson);
   if (!apiAuthConfigured && process.env.NODE_ENV === "production") {
-    guards.push({ name: "api_auth_required_in_production", ok: false, detail: "AZZCO_API_TOKEN not set" });
+    guards.push({ name: "api_auth_required_in_production", ok: false, detail: "VBOARD_API_TOKEN not set" });
   } else {
     guards.push({ name: "api_auth", ok: true, detail: apiAuthConfigured ? "configured" : "not set (dev mode)" });
   }
@@ -98,10 +98,10 @@ async function main() {
     if (subcommand === "status") {
       return process.stdout.write(`${JSON.stringify(financeStatus(config.dataRoot), null, 2)}\n`);
     }
-    if (subcommand === "import-qonto") {
+    if (subcommand === "import-bank") {
       const reportPath = process.argv[4];
-      const result = importQontoReconciliation(config.dataRoot, reportPath, {
-        trustQontoApi: process.argv.includes("--trust-qonto-api"),
+      const result = importBankReconciliation(config.dataRoot, reportPath, {
+        trustBankApi: process.argv.includes("--trust-bank-api"),
         includeDryRunAttach: process.argv.includes("--include-dry-run-attach"),
         allowDebitOnly: process.argv.includes("--allow-debit-only")
       });
@@ -109,10 +109,10 @@ async function main() {
       if (!result.validation.ok) process.exitCode = 2;
       return;
     }
-    if (subcommand === "pull-qonto") {
+    if (subcommand === "pull-bank") {
       const sinceIndex = process.argv.indexOf("--since");
       const since = sinceIndex >= 0 ? process.argv[sinceIndex + 1] : undefined;
-      const result = await pullQontoSnapshot(config.dataRoot, { since });
+      const result = await pullBankSnapshot(config.dataRoot, { since });
       process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
       if (process.argv.includes("--build")) {
         const build = buildCfoStack(config.dataRoot);
@@ -165,7 +165,7 @@ async function main() {
     };
     if (subcommand === "issue") {
       if (!file) {
-        process.stderr.write("--file or AZZCO_API_KEYS_FILE is required for keys issue\n");
+        process.stderr.write("--file or VBOARD_API_KEYS_FILE is required for keys issue\n");
         process.exitCode = 1;
         return;
       }

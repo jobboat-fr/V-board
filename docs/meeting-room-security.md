@@ -8,11 +8,11 @@ The meeting-room adapter is a production API surface: it receives transcript tex
 - `MEETING_ROOM_API_TOKEN` must be a long random bearer token (`openssl rand -hex 32`) and must never be committed.
 - The container binds `127.0.0.1:8790:8790` by default; expose it through nginx or Traefik with HTTPS.
 - OpenAPI docs (`/docs`, `/redoc`, `/openapi.json`) are disabled automatically in production mode.
-- Evidence is written under `AZZCO_DATA_ROOT`, with room IDs and media paths constrained to that root via `security.assert_under_root()`.
+- Evidence is written under `VBOARD_DATA_ROOT`, with room IDs and media paths constrained to that root via `security.assert_under_root()`.
 
 ## Provider Keys (BYOK)
 
-Users may bring their own Tavus or ElevenLabs keys for avatar and voice customization. Those keys are request-scoped inputs:
+Users may bring their own avatar provider or voice provider keys for avatar and voice customization. Those keys are request-scoped inputs:
 
 - Do not store user-supplied provider keys in evidence logs.
 - Do not echo provider error bodies back to clients — errors are redacted via `security.redact_secret()`.
@@ -50,7 +50,7 @@ ports:
   - "127.0.0.1:8790:8790"
 ```
 
-The container image runs as non-root user `hermes` (UID 1000).
+The container image runs as non-root user `vboard` (UID 1000).
 
 ## Host Firewall
 
@@ -58,22 +58,22 @@ Docker published ports bypass simple host-firewall assumptions. For deployments 
 
 ```bash
 # Block public TCP access to any Docker-published port
-sudo AZZCO_BLOCK_PUBLIC_PORT=63118 \
+sudo VBOARD_BLOCK_PUBLIC_PORT=63118 \
   bash packages/meeting-room/scripts/security/harden-docker-published-port.sh
 
 # Persist across reboots (systemd oneshot after docker.service):
-#   Install as /etc/systemd/system/azzco-firewall-hardening.service
-#   systemctl daemon-reload && systemctl enable --now azzco-firewall-hardening
+#   Install as /etc/systemd/system/vboard-firewall-hardening.service
+#   systemctl daemon-reload && systemctl enable --now vboard-firewall-hardening
 ```
 
 Or move the service entirely behind a private network and remove the public published port.
 
-## Verified on Hostinger (live)
+## Verified on front desk server (live)
 
-- `azzco-firewall-hardening.service` installed and enabled as a systemd oneshot.
+- `vboard-firewall-hardening.service` installed and enabled as a systemd oneshot.
 - `DOCKER-USER` rule confirmed active: `iptables -S DOCKER-USER` shows DROP rule on `eth0`.
-- OVH-side verification: port 63118 blocked; ports 80 and 443 still reachable.
-- Hostinger internal: `curl 127.0.0.1:63118` still returns `HTTP/1.1 200 OK`.
+- back office server-side verification: port 63118 blocked; ports 80 and 443 still reachable.
+- front desk server internal: `curl 127.0.0.1:63118` still returns `HTTP/1.1 200 OK`.
 
 ## Security Response Headers
 
@@ -103,7 +103,7 @@ Do not merge changes that weaken token enforcement, public binding, path contain
 ## Operational Checklist
 
 - Rotate `MEETING_ROOM_API_TOKEN` after any deployment-team change.
-- Keep `AZZCO_DATA_ROOT` on an encrypted or access-controlled volume.
+- Keep `VBOARD_DATA_ROOT` on an encrypted or access-controlled volume.
 - Keep JSON logs retained and rotated; never ship raw provider keys in log output.
 - Expose `/health` through the proxy only if needed for load balancer health checks; keep `/ready` protected.
 - Run host-level checks after Docker or Traefik changes: listening ports, DOCKER-USER rules, container health, and proxy TLS.

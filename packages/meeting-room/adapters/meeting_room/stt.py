@@ -1,11 +1,11 @@
 """
-Speech-to-Text — Groq Whisper transcription.
+Speech-to-Text â€” speech-to-text provider transcription.
 
 Accepts a raw audio buffer (bytes) and returns the transcript text.
-Used by the meeting room capture loop: mic chunks → base64 → this function.
+Used by the meeting room capture loop: mic chunks â†’ base64 â†’ this function.
 
-Provider: Groq (free tier covers typical meeting usage)
-Model: whisper-large-v3-turbo (fast, multilingual)
+Provider: configurable speech-to-text provider
+Model: configurable fast multilingual transcription model
 """
 
 import os
@@ -15,8 +15,10 @@ from typing import TypedDict
 
 logger = logging.getLogger("meeting_room.stt")
 
-GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
-DEFAULT_MODEL = os.getenv("STT_MODEL", "whisper-large-v3-turbo")
+STT_API_KEY = os.getenv("STT_API_KEY", "")
+STT_SDK_MODULE = os.getenv("STT_SDK_MODULE", "")
+STT_SDK_CLIENT = os.getenv("STT_SDK_CLIENT", "")
+DEFAULT_MODEL = os.getenv("STT_MODEL", "stt-default-model")
 DEFAULT_LANGUAGE = os.getenv("STT_LANGUAGE", "fr")
 
 
@@ -37,7 +39,7 @@ async def transcribe(
     model: str | None = None,
 ) -> STTResult:
     """
-    Transcribe an audio buffer using Groq Whisper.
+    Transcribe an audio buffer using speech-to-text provider.
 
     Args:
         audio:     Raw audio bytes (webm/opus recommended, min 1KB)
@@ -48,21 +50,26 @@ async def transcribe(
 
     Returns STTResult with text, duration, cost estimate, and empty flag.
     """
-    if not GROQ_API_KEY:
-        raise RuntimeError("GROQ_API_KEY not set — STT unavailable")
+    if not STT_API_KEY:
+        raise RuntimeError("STT_API_KEY not set â€” STT unavailable")
 
     if len(audio) < 1024:
         return STTResult(text="", duration_s=None, cost_usd=0.0, model=model or DEFAULT_MODEL, empty=True)
 
-    try:
-        from groq import AsyncGroq
-    except ImportError:
-        raise RuntimeError("groq package not installed. Run: pip install groq")
+    if not STT_SDK_MODULE or not STT_SDK_CLIENT:
+        raise RuntimeError("STT_SDK_MODULE and STT_SDK_CLIENT must be set when using SDK transcription")
 
-    client = AsyncGroq(api_key=GROQ_API_KEY)
+    try:
+        import importlib
+        module = importlib.import_module(STT_SDK_MODULE)
+        AsyncSttClient = getattr(module, STT_SDK_CLIENT)
+    except (ImportError, AttributeError) as exc:
+        raise RuntimeError("configured speech-to-text SDK package is not available") from exc
+
+    client = AsyncSttClient(api_key=STT_API_KEY)
     started = time.monotonic()
 
-    # Build the file tuple groq SDK expects: (filename, bytes, mime_type)
+    # Build the file tuple expected by the configured SDK: (filename, bytes, mime_type)
     effective_mime = mime_type or _infer_mime(filename)
     file_tuple = (filename, audio, effective_mime)
 
@@ -77,10 +84,10 @@ async def transcribe(
     text = (getattr(response, "text", "") or "").strip()
     duration = getattr(response, "duration", None)
 
-    # Groq Whisper pricing: ~$0.111 / hour of audio
+    # Default estimate for low-cost speech-to-text pricing
     cost = (float(duration or 0) / 3600) * 0.111
 
-    logger.debug("stt: transcribed %d bytes in %.2fs → %d chars", len(audio), elapsed, len(text))
+    logger.debug("stt: transcribed %d bytes in %.2fs â†’ %d chars", len(audio), elapsed, len(text))
 
     return STTResult(
         text=text,
@@ -92,7 +99,7 @@ async def transcribe(
 
 
 def is_configured() -> bool:
-    return bool(GROQ_API_KEY)
+    return bool(STT_API_KEY)
 
 
 def _infer_mime(filename: str) -> str:
@@ -106,3 +113,4 @@ def _infer_mime(filename: str) -> str:
         "flac": "audio/flac",
         "m4a":  "audio/mp4",
     }.get(ext, "audio/webm")
+

@@ -1,25 +1,25 @@
 version: "3.9"
 
-# ─────────────────────────────────────────────────────────────────────────────
-# AZZCO V-Board — single-server, multi-container deployment
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# VBOARD V-Board â€” single-server, multi-container deployment
 #
 # Services:
-#   ops-core      — routing gate, MCP server, HTTP API (port 8788)
-#   council       — AI analysis / hard-work engine (port 8787, internal only)
-#   runner        — cron agent executor (no exposed port)
-#   meeting-room  — live meeting AI advisor — CFO/CTO/COO/CRM (port 8790)
-#   ollama        — optional local LLM backend (port 11434, internal only)
+#   ops-core      â€” routing gate, MCP server, HTTP API (port 8788)
+#   council       â€” AI analysis / hard-work engine (port 8787, internal only)
+#   runner        â€” cron agent executor (no exposed port)
+#   meeting-room  â€” live meeting AI advisor â€” CFO/CTO/COO/CRM (port 8790)
+#   ollama        â€” optional local LLM backend (port 11434, internal only)
 #
-# All services share the `azzco-net` bridge network and communicate
+# All services share the `vboard-net` bridge network and communicate
 # by service name (e.g. http://council:8787/route).
 #
 # Quick start:
 #   cp .env.example .env   # fill in tokens
 #   docker compose up -d
-# ─────────────────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 networks:
-  azzco-net:
+  vboard-net:
     driver: bridge
 
 volumes:
@@ -30,14 +30,14 @@ volumes:
 
 services:
 
-  # ── ops-core ──────────────────────────────────────────────────────────────
+  # â”€â”€ ops-core â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   ops-core:
     build:
       context: packages/ops-core
       dockerfile: Dockerfile
-    container_name: azzco-ops-core
+    container_name: vboard-ops-core
     restart: unless-stopped
-    networks: [azzco-net]
+    networks: [vboard-net]
     ports:
       - "${OPS_CORE_HOST:-127.0.0.1}:${OPS_CORE_PORT:-8788}:8788"
     volumes:
@@ -45,20 +45,20 @@ services:
       - workspace:/workspace:ro
     environment:
       NODE_ENV: production
-      AZZCO_API_HOST: "0.0.0.0"
-      AZZCO_API_PORT: "8788"
-      AZZCO_API_TOKEN: "${AZZCO_API_TOKEN}"
-      AZZCO_API_KEYS_JSON: "${AZZCO_API_KEYS_JSON:-}"
-      AZZCO_DATA_ROOT: /data
-      AZZCO_COUNCIL_URL: "http://council:8787/route"
-      AZZCO_COUNCIL_TOKEN: "${AZZCO_COUNCIL_TOKEN}"
-      AZZCO_COUNCIL_TIMEOUT_MS: "${AZZCO_COUNCIL_TIMEOUT_MS:-120000}"
-      AZZCO_OWNER_WHATSAPP: "${AZZCO_OWNER_WHATSAPP:-}"
-      AZZCO_SERVER_NAME: "ops-core"
-      AZZCO_LOG_LEVEL: "${AZZCO_LOG_LEVEL:-info}"
+      VBOARD_API_HOST: "0.0.0.0"
+      VBOARD_API_PORT: "8788"
+      VBOARD_API_TOKEN: "${VBOARD_API_TOKEN}"
+      VBOARD_API_KEYS_JSON: "${VBOARD_API_KEYS_JSON:-}"
+      VBOARD_DATA_ROOT: /data
+      VBOARD_COUNCIL_URL: "http://council:8787/route"
+      VBOARD_COUNCIL_TOKEN: "${VBOARD_COUNCIL_TOKEN}"
+      VBOARD_COUNCIL_TIMEOUT_MS: "${VBOARD_COUNCIL_TIMEOUT_MS:-120000}"
+      VBOARD_OWNER_WHATSAPP: "${VBOARD_OWNER_WHATSAPP:-}"
+      VBOARD_SERVER_NAME: "ops-core"
+      VBOARD_LOG_LEVEL: "${VBOARD_LOG_LEVEL:-info}"
       SUPABASE_URL: "${SUPABASE_URL:-}"
       SUPABASE_SERVICE_ROLE_KEY: "${SUPABASE_SERVICE_ROLE_KEY:-}"
-      AZZCO_SUPABASE_ENABLED: "${AZZCO_SUPABASE_ENABLED:-false}"
+      VBOARD_SUPABASE_ENABLED: "${VBOARD_SUPABASE_ENABLED:-false}"
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:8788/health',r=>{process.exit(r.statusCode===200?0:1)}).on('error',()=>process.exit(1))"]
       interval: 30s
@@ -69,27 +69,27 @@ services:
       council:
         condition: service_healthy
 
-  # ── council ───────────────────────────────────────────────────────────────
+  # â”€â”€ council â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   council:
     build:
       context: packages/council
       dockerfile: Dockerfile
-    container_name: azzco-council
+    container_name: vboard-council
     restart: unless-stopped
-    networks: [azzco-net]
-    # council is NOT exposed to the host — ops-core/runner reach it by name
+    networks: [vboard-net]
+    # council is NOT exposed to the host â€” ops-core/runner reach it by name
     expose: ["8787"]
     volumes:
       - workspace:/workspace:ro
     environment:
       NODE_ENV: production
-      AZZCO_COUNCIL_HOST: "0.0.0.0"
-      AZZCO_COUNCIL_PORT: "8787"
-      AZZCO_COUNCIL_TOKEN: "${AZZCO_COUNCIL_TOKEN}"
-      HUGGINGFACE_TOKEN: "${HUGGINGFACE_TOKEN:-}"
-      TOGETHER_API_KEY: "${TOGETHER_API_KEY:-}"
-      AZZCO_DAILY_BUDGET_USD: "${AZZCO_DAILY_BUDGET_USD:-3.00}"
-      AZZCO_FORCE_CHEAP_MODE: "${AZZCO_FORCE_CHEAP_MODE:-0}"
+      VBOARD_COUNCIL_HOST: "0.0.0.0"
+      VBOARD_COUNCIL_PORT: "8787"
+      VBOARD_COUNCIL_TOKEN: "${VBOARD_COUNCIL_TOKEN}"
+      LLM_API_TOKEN: "${LLM_API_TOKEN:-}"
+      LLM_FALLBACK_API_KEY: "${LLM_FALLBACK_API_KEY:-}"
+      VBOARD_DAILY_BUDGET_USD: "${VBOARD_DAILY_BUDGET_USD:-3.00}"
+      VBOARD_FORCE_CHEAP_MODE: "${VBOARD_FORCE_CHEAP_MODE:-0}"
       OLLAMA_BASE_URL: "http://ollama:11434"
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:8787/health',r=>{process.exit(r.statusCode===200?0:1)}).on('error',()=>process.exit(1))"]
@@ -98,64 +98,64 @@ services:
       retries: 3
       start_period: 20s
 
-  # ── runner ────────────────────────────────────────────────────────────────
+  # â”€â”€ runner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   runner:
     build:
       context: packages/runner
       dockerfile: Dockerfile
-    container_name: azzco-runner
+    container_name: vboard-runner
     restart: unless-stopped
-    networks: [azzco-net]
+    networks: [vboard-net]
     volumes:
       - workspace:/workspace
     environment:
-      AZZCO_WORKSPACE: /workspace
-      AZZCO_COUNCIL_URL: "http://council:8787/route"
-      AZZCO_COUNCIL_TOKEN: "${AZZCO_COUNCIL_TOKEN}"
-      AZZCO_OWNER_WHATSAPP: "${AZZCO_OWNER_WHATSAPP}"
-      AZZCO_ASSISTANT_WHATSAPP: "${AZZCO_ASSISTANT_WHATSAPP:-}"
+      VBOARD_WORKSPACE: /workspace
+      VBOARD_COUNCIL_URL: "http://council:8787/route"
+      VBOARD_COUNCIL_TOKEN: "${VBOARD_COUNCIL_TOKEN}"
+      VBOARD_OWNER_WHATSAPP: "${VBOARD_OWNER_WHATSAPP}"
+      VBOARD_ASSISTANT_WHATSAPP: "${VBOARD_ASSISTANT_WHATSAPP:-}"
       WHATSAPP_API_URL: "${WHATSAPP_API_URL:-}"
       WHATSAPP_API_TOKEN: "${WHATSAPP_API_TOKEN:-}"
       GMAIL_CREDENTIALS_JSON: "${GMAIL_CREDENTIALS_JSON:-}"
       GMAIL_TOKEN_JSON: "${GMAIL_TOKEN_JSON:-}"
-      QONTO_AUTH: "${QONTO_AUTH:-}"
+      BANK_API_AUTH: "${BANK_API_AUTH:-}"
       MAIL_TRIAGE_LIMIT: "${MAIL_TRIAGE_LIMIT:-20}"
-      AZZCO_DAILY_BUDGET_USD: "${AZZCO_DAILY_BUDGET_USD:-3.00}"
+      VBOARD_DAILY_BUDGET_USD: "${VBOARD_DAILY_BUDGET_USD:-3.00}"
     depends_on:
       ops-core:
         condition: service_healthy
       council:
         condition: service_healthy
 
-  # ── meeting-room ─────────────────────────────────────────────────────────
+  # â”€â”€ meeting-room â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   meeting-room:
     build:
       context: packages/meeting-room
       dockerfile: Dockerfile
-    container_name: azzco-meeting-room
+    container_name: vboard-meeting-room
     restart: unless-stopped
-    networks: [azzco-net]
-    # Localhost-only bind — put nginx or Traefik in front for HTTPS
+    networks: [vboard-net]
+    # Localhost-only bind â€” put nginx or Traefik in front for HTTPS
     ports:
       - "${MEETING_ROOM_HOST:-127.0.0.1}:${MEETING_ROOM_PORT:-8790}:8790"
     volumes:
       - meeting-room-data:/workspace
     environment:
       PYTHONUNBUFFERED: "1"
-      AZZCO_DATA_ROOT: /workspace
+      VBOARD_DATA_ROOT: /workspace
       MEETING_ROOM_REQUIRE_TOKEN: "true"
       MEETING_ROOM_API_TOKEN: "${MEETING_ROOM_API_TOKEN}"
-      # AI providers — council (at least one required)
-      ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY:-}"
-      OPENAI_API_KEY: "${OPENAI_API_KEY:-}"
-      GOOGLE_API_KEY: "${GOOGLE_API_KEY:-}"
+      # AI providers â€” council (at least one required)
+      PRIMARY_LLM_API_KEY: "${PRIMARY_LLM_API_KEY:-}"
+      REVIEWER_LLM_API_KEY: "${REVIEWER_LLM_API_KEY:-}"
+      CHAIR_LLM_API_KEY: "${CHAIR_LLM_API_KEY:-}"
       # Voice
-      ELEVENLABS_API_KEY: "${ELEVENLABS_API_KEY:-}"
-      GROQ_API_KEY: "${GROQ_API_KEY:-}"
+      VOICE_API_KEY: "${VOICE_API_KEY:-}"
+      STT_API_KEY: "${STT_API_KEY:-}"
       # Avatar (optional)
-      TAVUS_API_KEY: "${TAVUS_API_KEY:-}"
-      TAVUS_BASE_URL: "${TAVUS_BASE_URL:-https://tavusapi.com}"
-      # LiveKit (Phase 2 — optional)
+      AVATAR_API_KEY: "${AVATAR_API_KEY:-}"
+      AVATAR_API_BASE_URL: "${AVATAR_API_BASE_URL:-https://avatar-provider.example}"
+      # LiveKit (Phase 2 â€” optional)
       LIVEKIT_URL: "${LIVEKIT_URL:-}"
       LIVEKIT_API_KEY: "${LIVEKIT_API_KEY:-}"
       LIVEKIT_API_SECRET: "${LIVEKIT_API_SECRET:-}"
@@ -180,13 +180,14 @@ services:
         max-size: "10m"
         max-file: "5"
 
-  # ── ollama (optional local LLM) ───────────────────────────────────────────
+  # â”€â”€ ollama (optional local LLM) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   ollama:
     image: ollama/ollama:latest
-    container_name: azzco-ollama
+    container_name: vboard-ollama
     restart: unless-stopped
-    networks: [azzco-net]
+    networks: [vboard-net]
     expose: ["11434"]
     volumes:
       - ollama-data:/root/.ollama
     profiles: ["ollama"]   # opt-in: docker compose --profile ollama up -d
+

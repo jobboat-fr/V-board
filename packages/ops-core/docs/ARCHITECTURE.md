@@ -1,6 +1,6 @@
 # Architecture
 
-AZZCO Ops Core productizes the container-native operating model.
+VBOARD Ops Core productizes the container-native operating model.
 
 ## Roles
 
@@ -26,7 +26,7 @@ Council never sends external email, WhatsApp, Telegram, or writes CRM directly.
 Finance/CFO stack:
 
 - Runner collects bank, invoice, receipt, and email evidence.
-- The normalized context lives under `AZZCO_DATA_ROOT/ops/context`.
+- The normalized context lives under `VBOARD_DATA_ROOT/ops/context`.
 - The CFO stack builds reports and ledgers only from validated context.
 - If validation fails, it writes a blocked report and stops; it does not invent balances.
 - Owner/accountant approval remains required before filing, payment, or legal/tax action.
@@ -48,6 +48,6 @@ flowchart LR
 
 - All routing goes through `classify()`.
 - All bridge calls pass compact evidence.
-- All write access is scoped to `AZZCO_DATA_ROOT`.
+- All write access is scoped to `VBOARD_DATA_ROOT`.
 - Hot, legal, accounting, fiscal, security, incident, or commitment-risk tasks require owner approval or council preparation.
 - Runner owns final delivery.

@@ -18,18 +18,18 @@ COPY run_delegated_job.sh ./
 # Make shell and node scripts executable
 RUN chmod +x run_delegated_job.sh bin/*.sh 2>/dev/null || true
 
-# Default crontab — operators override via AZZCO_CRONTAB_FILE or mount a file
+# Default crontab — operators override via VBOARD_CRONTAB_FILE or mount a file
 # Format: standard cron (minute hour dom month dow command)
 # Example: runs morning brief at 07:30 and 17:30 UTC every day
-COPY crontab.example /etc/azzco-crontab.example
+COPY crontab.example /etc/vboard-crontab.example
 
 # Workspace volume — shared with ops-core and council containers
 VOLUME ["/workspace"]
 
-ENV AZZCO_WORKSPACE=/workspace \
-    AZZCO_COUNCIL_URL=http://council:8787/route \
+ENV VBOARD_WORKSPACE=/workspace \
+    VBOARD_COUNCIL_URL=http://council:8787/route \
     NODE_PATH=/workspace/bin
 
-# Entry point: supercronic reads the crontab file from AZZCO_CRONTAB_FILE
-# Operators mount their crontab at /etc/azzco-crontab or set AZZCO_CRONTAB_FILE
-CMD ["sh", "-c", "supercronic ${AZZCO_CRONTAB_FILE:-/etc/azzco-crontab}"]
+# Entry point: supercronic reads the crontab file from VBOARD_CRONTAB_FILE
+# Operators mount their crontab at /etc/vboard-crontab or set VBOARD_CRONTAB_FILE
+CMD ["sh", "-c", "supercronic ${VBOARD_CRONTAB_FILE:-/etc/vboard-crontab}"]

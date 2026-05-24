@@ -1,0 +1,22 @@
+[Unit]
+Description=VBOARD Ops Core API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/vboard-ops-core
+EnvironmentFile=/etc/vboard-ops-core.env
+ExecStart=/usr/bin/node /opt/vboard-ops-core/src/cli.js api
+Restart=always
+RestartSec=5
+User=vboard
+Group=vboard
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/var/lib/vboard-ops-core
+
+[Install]
+WantedBy=multi-user.target

@@ -33,7 +33,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
-from . import escalation, evidence_store, policy as meeting_policy, security as meeting_security, short_term_memory as stm, tavus
+from . import avatar, escalation, evidence_store, policy as meeting_policy, security as meeting_security, short_term_memory as stm
 from .intervention import check_intervention
 from .council.advisors import ADVISORS, get_advisor
 from .room_registry import active_rooms as _active_rooms  # shared with native tool
@@ -57,14 +57,14 @@ def is_production_mode() -> bool:
         os.getenv("ENVIRONMENT", ""),
         os.getenv("APP_ENV", ""),
         os.getenv("NODE_ENV", ""),
-        os.getenv("HERMES_ENV", ""),
+        os.getenv("VBOARD_ENV", ""),
         os.getenv("RAILWAY_ENVIRONMENT_NAME", ""),
     ]
     return any(value.lower() in PROD_ENV_VALUES for value in env_values if value)
 
 
 app = FastAPI(
-    title="Hermes Meeting Room",
+    title="V-Board Meeting Room",
     description="AI advisor that joins live meetings as a voice participant (CFO/CTO/COO/CRM).",
     version="1.0.0",
     docs_url=None if is_production_mode() else "/docs",
@@ -75,7 +75,7 @@ app = FastAPI(
 security = HTTPBearer(auto_error=False)
 
 
-# ─── Auth ─────────────────────────────────────────────────────────────────────
+# â”€â”€â”€ Auth â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def verify_token(credentials: HTTPAuthorizationCredentials | None = Depends(security)):
     if not API_TOKEN:
@@ -114,7 +114,7 @@ async def meeting_validation_error_handler(request: Request, exc: meeting_securi
     return JSONResponse(status_code=exc.status_code, content={"detail": exc.code})
 
 
-# ─── Request models ───────────────────────────────────────────────────────────
+# â”€â”€â”€ Request models â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class JoinBody(BaseModel):
     room_id:           str
@@ -148,7 +148,7 @@ class CheckBody(BaseModel):
 
 
 class CouncilBody(BaseModel):
-    """Full council analysis request — runs AIWorkerCollective."""
+    """Full council analysis request â€” runs AIWorkerCollective."""
     room_id:     str
     advisor_id:  str        = "cfo"
     topic:       str | None = None
@@ -190,10 +190,10 @@ class EscalationResponseBody(BaseModel):
     note:          str = ""
 
 
-class TavusAvatarBody(BaseModel):
+class AvatarProviderBody(BaseModel):
     room_id:                str
     advisor_id:             str = "cfo"
-    tavus_api_key:          str | None = None
+    avatar_api_key:          str | None = None
     replica_id:             str | None = None
     persona_id:             str | None = None
     pipeline_mode:          str = "echo"
@@ -205,7 +205,7 @@ class TavusAvatarBody(BaseModel):
     max_participants:       int | None = None
 
 
-class TavusEchoBody(BaseModel):
+class AvatarEchoBody(BaseModel):
     room_id:         str
     conversation_id: str
     text:            str | None = None
@@ -214,11 +214,11 @@ class TavusEchoBody(BaseModel):
     inference_id:    str | None = None
 
 
-# ─── Probes ───────────────────────────────────────────────────────────────────
+# â”€â”€â”€ Probes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @app.get("/health")
 async def health():
-    return {"ok": True, "service": "hermes-meeting-room", "version": "1.0.0"}
+    return {"ok": True, "service": "vboard-meeting-room", "version": "1.0.0"}
 
 
 @app.get("/ready")
@@ -234,10 +234,10 @@ async def ready():
         "token_configured":      bool(API_TOKEN),
         "stt_configured":        stt_ok(),
         "tts_configured":        tts_ok(),
-        "tavus_configured":      tavus.is_configured(),
-        "anthropic_configured":  bool(os.getenv("ANTHROPIC_API_KEY")),
-        "openai_configured":     bool(os.getenv("OPENAI_API_KEY")),
-        "google_configured":     bool(os.getenv("GOOGLE_API_KEY")),
+        "avatar_configured":      avatar.is_configured(),
+        "primary_llm_configured":  bool(os.getenv("PRIMARY_LLM_API_KEY")),
+        "reviewer_llm_configured":     bool(os.getenv("REVIEWER_LLM_API_KEY")),
+        "chair_llm_configured":     bool(os.getenv("CHAIR_LLM_API_KEY")),
         "livekit_configured":    livekit["configured"],
         "livekit_agent":         livekit,
         "active_rooms":          len(_active_rooms),
@@ -245,7 +245,7 @@ async def ready():
     }
 
 
-# ─── Meeting lifecycle ────────────────────────────────────────────────────────
+# â”€â”€â”€ Meeting lifecycle â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @app.post("/meeting/join")
 async def meeting_join(body: JoinBody, token: str = Depends(verify_token)):
@@ -293,20 +293,20 @@ async def meeting_join(body: JoinBody, token: str = Depends(verify_token)):
         "status": "joined",
     })
 
-    # Phase 2: LiveKit presence (stub — returns 501 until livekit-agents is wired)
+    # Phase 2: LiveKit presence (stub â€” returns 501 until livekit-agents is wired)
     livekit_result = None
     if body.livekit_token:
         body.room_id = room_id
         livekit_result = await _livekit_join(body)
 
     avatar_result = None
-    if body.avatar and body.avatar.get("provider") == "tavus":
+    if body.avatar and body.avatar.get("provider") == "avatar":
         avatar_cfg = body.avatar
         try:
-            avatar_result = await tavus.create_conversation(
+            avatar_result = await avatar.create_conversation(
                 room_id=room_id,
                 advisor=advisor,
-                api_key=avatar_cfg.get("tavus_api_key"),
+                api_key=avatar_cfg.get("avatar_api_key"),
                 replica_id=avatar_cfg.get("replica_id"),
                 persona_id=avatar_cfg.get("persona_id"),
                 pipeline_mode=avatar_cfg.get("pipeline_mode", "echo"),
@@ -325,7 +325,7 @@ async def meeting_join(body: JoinBody, token: str = Depends(verify_token)):
                 k: v for k, v in avatar_result.items() if k != "meeting_token"
             }
         except Exception as exc:
-            avatar_result = {"ok": False, "provider": "tavus", "error": str(exc)}
+            avatar_result = {"ok": False, "provider": "avatar", "error": str(exc)}
 
     logger.info("room %s joined by advisor=%s", room_id, body.advisor_id)
     return {
@@ -362,11 +362,11 @@ async def meeting_leave(body: LeaveBody, token: str = Depends(verify_token)):
     }
 
 
-# ─── Transcript ───────────────────────────────────────────────────────────────
+# â”€â”€â”€ Transcript â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @app.post("/meeting/transcript", status_code=201)
 async def push_transcript(body: TranscriptBody, token: str = Depends(verify_token)):
-    """Push a transcript utterance (text mode — no STT)."""
+    """Push a transcript utterance (text mode â€” no STT)."""
     room_id = meeting_security.checked_room_id(body.room_id)
     text = meeting_security.checked_text(
         body.text,
@@ -389,14 +389,14 @@ async def push_transcript(body: TranscriptBody, token: str = Depends(verify_toke
     }
 
 
-# ─── STT ──────────────────────────────────────────────────────────────────────
+# â”€â”€â”€ STT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @app.post("/meeting/stt", status_code=201)
 async def speech_to_text(body: STTBody, token: str = Depends(verify_token)):
     """Transcribe an audio chunk and append the result to the room transcript."""
     from .stt import transcribe, is_configured
     if not is_configured():
-        raise HTTPException(status_code=503, detail="stt_unavailable: GROQ_API_KEY not set")
+        raise HTTPException(status_code=503, detail="stt_unavailable: STT_API_KEY not set")
 
     room_id = meeting_security.checked_room_id(body.room_id)
     audio = meeting_security.decode_audio_base64(body.audio_base64)
@@ -433,14 +433,14 @@ async def speech_to_text(body: STTBody, token: str = Depends(verify_token)):
     }
 
 
-# ─── TTS ──────────────────────────────────────────────────────────────────────
+# â”€â”€â”€ TTS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @app.post("/meeting/tts")
 async def text_to_speech(body: TTSBody, token: str = Depends(verify_token)):
     """Synthesize text to speech for an advisor."""
     from .tts import synthesize, is_configured
     if not is_configured():
-        raise HTTPException(status_code=503, detail="tts_unavailable: ELEVENLABS_API_KEY not set")
+        raise HTTPException(status_code=503, detail="tts_unavailable: VOICE_API_KEY not set")
     room_id = meeting_security.checked_room_id(body.room_id)
     text = meeting_security.checked_text(
         body.text,
@@ -480,7 +480,7 @@ async def text_to_speech(body: TTSBody, token: str = Depends(verify_token)):
     }
 
 
-# ─── Intervention check ───────────────────────────────────────────────────────
+# â”€â”€â”€ Intervention check â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @app.post("/meeting/check")
 async def intervention_check(body: CheckBody, token: str = Depends(verify_token)):
@@ -536,14 +536,14 @@ async def intervention_check(body: CheckBody, token: str = Depends(verify_token)
     return response
 
 
-# ─── Council analysis ─────────────────────────────────────────────────────────
+# â”€â”€â”€ Council analysis â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @app.post("/council/analyze")
 async def council_analyze(body: CouncilBody, token: str = Depends(verify_token)):
     """
     Run the full 5-stage AIWorkerCollective council for a meeting scenario.
 
-    This is the heavyweight endpoint — runs Primary + 2 Reviewers + Chairman (if needed).
+    This is the heavyweight endpoint â€” runs Primary + 2 Reviewers + Chairman (if needed).
     Use /meeting/check for the lightweight intervention-only path.
     """
     from .council.collective import AIWorkerCollective
@@ -620,7 +620,7 @@ async def council_analyze(body: CouncilBody, token: str = Depends(verify_token))
     }
 
 
-# ─── Status ───────────────────────────────────────────────────────────────────
+# â”€â”€â”€ Status â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @app.get("/meeting/status")
 async def meeting_status(token: str = Depends(verify_token)):
@@ -711,17 +711,17 @@ async def meeting_escalation_respond(body: EscalationResponseBody, token: str = 
     }
 
 
-@app.post("/meeting/avatar/tavus")
-async def meeting_tavus_avatar(body: TavusAvatarBody, token: str = Depends(verify_token)):
+@app.post("/meeting/avatar/provider")
+async def meeting_avatar_provider(body: AvatarProviderBody, token: str = Depends(verify_token)):
     room_id = meeting_security.checked_room_id(body.room_id)
     advisor = get_advisor(body.advisor_id)
     if not advisor:
         raise HTTPException(status_code=400, detail=f"Unknown advisor_id: {body.advisor_id}")
     try:
-        result = await tavus.create_conversation(
+        result = await avatar.create_conversation(
             room_id=room_id,
             advisor=advisor,
-            api_key=body.tavus_api_key,
+            api_key=body.avatar_api_key,
             replica_id=body.replica_id,
             persona_id=body.persona_id,
             pipeline_mode=body.pipeline_mode,
@@ -741,16 +741,16 @@ async def meeting_tavus_avatar(body: TavusAvatarBody, token: str = Depends(verif
             max_participants=body.max_participants,
         )
     except Exception:
-        logger.exception("tavus avatar creation failed for room=%s advisor=%s", room_id, body.advisor_id)
-        raise HTTPException(status_code=503, detail="tavus_avatar_unavailable")
+        logger.exception("avatar provider creation failed for room=%s advisor=%s", room_id, body.advisor_id)
+        raise HTTPException(status_code=503, detail="avatar_provider_unavailable")
 
     room = _active_rooms.setdefault(room_id, {"room_id": room_id})
     room["avatar"] = {k: v for k, v in result.items() if k != "meeting_token"}
     return result
 
 
-@app.post("/meeting/avatar/tavus/echo")
-async def meeting_tavus_echo(body: TavusEchoBody, token: str = Depends(verify_token)):
+@app.post("/meeting/avatar/provider/echo")
+async def meeting_avatar_echo(body: AvatarEchoBody, token: str = Depends(verify_token)):
     room_id = meeting_security.checked_room_id(body.room_id)
     if not body.text and not body.audio_base64:
         raise HTTPException(status_code=400, detail="text_or_audio_required")
@@ -768,7 +768,7 @@ async def meeting_tavus_echo(body: TavusEchoBody, token: str = Depends(verify_to
     audio_base64 = body.audio_base64
     if audio_base64 is not None:
         meeting_security.decode_audio_base64(audio_base64)
-    payload = tavus.echo_payload(
+    payload = avatar.echo_payload(
         conversation_id,
         text=text,
         audio_base64=audio_base64,
@@ -776,7 +776,7 @@ async def meeting_tavus_echo(body: TavusEchoBody, token: str = Depends(verify_to
         inference_id=body.inference_id,
     )
     evidence_store.log_avatar(room_id, {
-        "type": "tavus_echo_payload",
+        "type": "avatar_echo_payload",
         "conversation_id": conversation_id,
         "modality": payload["properties"]["modality"],
         "text": text,
@@ -784,11 +784,11 @@ async def meeting_tavus_echo(body: TavusEchoBody, token: str = Depends(verify_to
     return {"ok": True, "payload": payload}
 
 
-# ─── Advisor list ─────────────────────────────────────────────────────────────
+# â”€â”€â”€ Advisor list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @app.get("/advisors")
 async def list_advisors():
-    """Returns the available advisor roles (public — no auth required)."""
+    """Returns the available advisor roles (public â€” no auth required)."""
     return {
         "advisors": [
             {k: v for k, v in a.items() if k != "triggers"}  # omit triggers from public listing
@@ -797,7 +797,7 @@ async def list_advisors():
     }
 
 
-# ─── Internals ────────────────────────────────────────────────────────────────
+# â”€â”€â”€ Internals â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def _build_advisor_system(advisor: dict, topic: str) -> str:
     return (
@@ -818,7 +818,7 @@ def _append_utterance(room_id: str, utterance: dict[str, Any]) -> dict[str, Any]
 
 
 async def _livekit_join(body: JoinBody) -> dict | None:
-    """Phase 2 — LiveKit participant join/control-plane handoff."""
+    """Phase 2 â€” LiveKit participant join/control-plane handoff."""
     try:
         from .livekit_agent import join_as_advisor
         return await join_as_advisor(body)
@@ -827,12 +827,12 @@ async def _livekit_join(body: JoinBody) -> dict | None:
         return {"status": "error", "phase": 2, "error": str(exc)}
 
 
-# ─── Entrypoint ───────────────────────────────────────────────────────────────
+# â”€â”€â”€ Entrypoint â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def run():
     import uvicorn
     logging.basicConfig(level=logging.INFO)
-    logger.info("Starting Hermes Meeting Room server on %s:%d", HOST, PORT)
+    logger.info("Starting V-Board Meeting Room server on %s:%d", HOST, PORT)
     uvicorn.run(
         "adapters.meeting_room.server:app",
         host=HOST,
@@ -844,3 +844,4 @@ def run():
 
 if __name__ == "__main__":
     run()
+

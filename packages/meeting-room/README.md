@@ -1,69 +1,64 @@
 # Meeting Room
 
-Live meeting AI advisor — joins voice/video calls as a real participant with CFO, CTO, COO, CRM, Legal, and Product voices.
+Live AI advisors for meetings: listen, decide, escalate, speak, and preserve evidence.
 
-## Overview
+The meeting-room package is a FastAPI service that lets V-Board workers participate in a meeting context as CFO, CTO, COO, CRM, Legal, Product, or custom roles.
 
-The meeting-room adapter is a FastAPI service (port 8790) that:
+## No-Key Demo
 
-1. Joins meeting rooms and maintains a per-room transcript buffer (200 utterances, 4-hour TTL)
-2. Runs an intervention judge — decides when the AI should speak
-3. Delegates hard analysis to the 5-stage **AIWorkerCollective** council (Primary → 2 Reviewers → Chairman if needed)
-4. Synthesizes speech via ElevenLabs (TTS) and transcribes audio via Groq Whisper (STT)
-5. Renders optional video avatars via the Tavus echo-mode pipeline
-6. Writes a durable auditable evidence chain (transcripts, decisions, escalations, commitments) under `AZZCO_DATA_ROOT/meetings/YYYY-MM-DD/<room_id>/`
-
-## Container
-
-```
-meeting-room (port 8790, 127.0.0.1 only)
-│
-├── adapters/meeting_room/
-│   ├── server.py              FastAPI app — all HTTP endpoints
-│   ├── security.py            Shared validators, limits, path containment
-│   ├── intervention.py        "Should I speak?" judge
-│   ├── evidence_store.py      Durable JSONL evidence chain
-│   ├── short_term_memory.py   Per-room ring buffer
-│   ├── escalation.py          Owner-approval gate
-│   ├── policy.py              Meeting preflight and intervention gating
-│   ├── tavus.py               BYOK Tavus video avatar (HTTPS-only, redacted errors)
-│   ├── stt.py                 Groq Whisper transcription
-│   ├── tts.py                 ElevenLabs voice synthesis
-│   ├── livekit_agent.py       LiveKit media control plane (Phase 2)
-│   └── council/
-│       ├── advisors.py        CFO / CTO / COO / CRM / Legal / Product profiles
-│       └── collective.py      AIWorkerCollective — 5-stage multi-provider council
-│
-├── tests/                     128 pytest tests, no real API keys required
-├── scripts/
-│   ├── check_meeting_room_security.py   14 static security guardrails
-│   └── security/
-│       └── harden-docker-published-port.sh  DOCKER-USER iptables rule
-│
-├── Dockerfile
-├── docker-compose.yml         Standalone compose (single service)
-├── requirements.txt
-└── nginx.conf.example         TLS termination template
-```
-
-## Required Environment Variables
+From the repo root:
 
 ```bash
-MEETING_ROOM_API_TOKEN=<long-random-secret>  # required in production
+python -m pip install -r packages/meeting-room/requirements.txt pytest
+python packages/meeting-room/scripts/demo_meeting_room.py
+```
+
+Or:
+
+```bash
+npm run demo:meeting
+```
+
+The demo uses the real HTTP handlers in process. It creates a room, adds advisors, captures transcript lines, detects a commitment, proposes a legal/CFO intervention, pauses for host approval, resumes with context, and prints the evidence files.
+
+## What The Service Does
+
+1. Joins meeting rooms and maintains a per-room transcript buffer.
+2. Runs an intervention judge that decides whether an advisor should speak.
+3. Applies host/owner authority gates before risky speech.
+4. Delegates deep analysis to the 5-stage AI worker collective when needed.
+5. Supports configurable speech-to-text, voice, and avatar adapters.
+6. Writes transcripts, decisions, commitments, escalations, avatar sessions, and media references under `VBOARD_DATA_ROOT`.
+
+## Required Environment
+
+```bash
+MEETING_ROOM_API_TOKEN=<long-random-secret>
 MEETING_ROOM_REQUIRE_TOKEN=true
-
-# At least one AI provider for the council
-ANTHROPIC_API_KEY=
-OPENAI_API_KEY=
-GOOGLE_API_KEY=
 ```
 
-Optional:
+Optional provider configuration:
+
 ```bash
-ELEVENLABS_API_KEY=     # TTS voice synthesis
-GROQ_API_KEY=           # STT Groq Whisper
-TAVUS_API_KEY=          # Tavus video avatar
-LIVEKIT_URL=            # LiveKit media (Phase 2)
+PRIMARY_LLM_API_KEY=
+PRIMARY_LLM_API_BASE_URL=
+REVIEWER_LLM_API_KEY=
+REVIEWER_LLM_API_BASE_URL=
+CHAIR_LLM_API_KEY=
+CHAIR_LLM_API_BASE_URL=
+LLM_ROUTER_API_KEY=
+LLM_ROUTER_API_BASE_URL=
+
+STT_API_KEY=
+STT_SDK_MODULE=
+STT_SDK_CLIENT=
+VOICE_API_KEY=
+VOICE_API_BASE_URL=
+VOICE_API_KEY_HEADER=Authorization
+AVATAR_API_KEY=
+AVATAR_API_BASE_URL=
+
+LIVEKIT_URL=
 LIVEKIT_API_KEY=
 LIVEKIT_API_SECRET=
 ```
@@ -72,38 +67,57 @@ LIVEKIT_API_SECRET=
 
 | Method | Path | Description |
 |---|---|---|
-| `GET` | `/health` | Liveness probe (public) |
-| `GET` | `/ready` | Readiness probe — shows all provider states |
-| `GET` | `/advisors` | List advisor roles (public) |
-| `POST` | `/meeting/join` | Join a room as an AI advisor |
-| `POST` | `/meeting/leave` | Disconnect and flush transcript |
-| `POST` | `/meeting/transcript` | Push a text utterance |
-| `POST` | `/meeting/stt` | Transcribe audio chunk (Groq Whisper) |
-| `POST` | `/meeting/tts` | Synthesize advisor speech (ElevenLabs) |
-| `POST` | `/meeting/check` | Intervention judge — should the AI speak? |
-| `POST` | `/council/analyze` | Full 5-stage AIWorkerCollective analysis |
-| `GET` | `/meeting/status` | List active rooms |
-| `POST` | `/meeting/preflight` | Owner/host authority gate |
-| `GET` | `/meeting/escalations/{room_id}` | Pending escalations |
-| `POST` | `/meeting/escalation/respond` | Approve or reject escalation |
-| `POST` | `/meeting/avatar/tavus` | Create Tavus video avatar |
-| `POST` | `/meeting/avatar/tavus/echo` | Push text/audio to Tavus echo |
+| `GET` | `/health` | Liveness probe. |
+| `GET` | `/ready` | Readiness and provider state. |
+| `GET` | `/advisors` | List advisor roles. |
+| `POST` | `/meeting/join` | Join a room as an AI advisor. |
+| `POST` | `/meeting/leave` | End a room and flush memory. |
+| `POST` | `/meeting/transcript` | Push a text utterance. |
+| `POST` | `/meeting/stt` | Transcribe audio through configured STT adapter. |
+| `POST` | `/meeting/tts` | Synthesize speech through configured voice adapter. |
+| `POST` | `/meeting/check` | Decide whether an advisor should intervene. |
+| `POST` | `/council/analyze` | Run full 5-stage council analysis. |
+| `GET` | `/meeting/status` | List active rooms. |
+| `POST` | `/meeting/preflight` | Run host authority gates. |
+| `GET` | `/meeting/escalations/{room_id}` | List pending escalations. |
+| `POST` | `/meeting/escalation/respond` | Approve or reject an escalation. |
+| `POST` | `/meeting/avatar/provider` | Create an optional avatar provider session. |
+| `POST` | `/meeting/avatar/provider/echo` | Send text/audio to avatar echo mode. |
 
-## Running Tests
+## Layout
+
+```text
+adapters/meeting_room/server.py              FastAPI app
+adapters/meeting_room/security.py            validation and redaction
+adapters/meeting_room/policy.py              preflight and intervention gates
+adapters/meeting_room/intervention.py        lightweight should-I-speak judge
+adapters/meeting_room/evidence_store.py      JSONL evidence chain
+adapters/meeting_room/stt.py                 configurable STT adapter
+adapters/meeting_room/tts.py                 configurable voice adapter
+adapters/meeting_room/avatar.py              configurable avatar adapter
+adapters/meeting_room/council/collective.py  5-stage council orchestration
+tests/                                       no-key pytest suite
+scripts/check_meeting_room_security.py       static guardrails
+scripts/demo_meeting_room.py                 no-key demo
+```
+
+## Tests
 
 ```bash
-cd packages/meeting-room
-pip install -r requirements.txt pytest
-PYTHONPATH=. python -m pytest tests/ -q
+python -m pip install -r requirements.txt pytest
+PYTHONPATH=. python -m pytest tests -q
+python scripts/check_meeting_room_security.py
 ```
 
 ## Security
 
-See [`docs/meeting-room-security.md`](../../docs/meeting-room-security.md) for the full operational security guide.
+See [`../../docs/meeting-room-security.md`](../../docs/meeting-room-security.md).
 
 Key invariants:
-- `MEETING_ROOM_REQUIRE_TOKEN=true` enforced in container default
-- `127.0.0.1` bind only — never publicly exposed without TLS proxy
-- `read_only` rootfs, `no-new-privileges`, `cap_drop: ALL`
-- All evidence paths checked with `security.assert_under_root()`
-- Provider BYOK keys are never persisted or echoed in errors
+
+- Token required in production.
+- Localhost/private-network binding by default.
+- Request size limits and base64 audio limits.
+- Evidence paths are contained under `VBOARD_DATA_ROOT`.
+- Provider keys are never stored in evidence logs.
+- Avatar meeting tokens are removed from room status.

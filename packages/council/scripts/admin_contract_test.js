@@ -3,17 +3,17 @@
 
 const assert = require("assert");
 
-const ROOT = "/opt/azzco-council/core";
-const { AzzcoCouncilEngine, CouncilRuntime } = require(`${ROOT}/src/index`);
+const ROOT = "/opt/vboard-council/core";
+const { VBoardCouncilEngine, CouncilRuntime } = require(`${ROOT}/src/index`);
 const { MockProvider } = require(`${ROOT}/src/providers/mock_provider`);
 
-const engine = new AzzcoCouncilEngine({
+const engine = new VBoardCouncilEngine({
   runtime: new CouncilRuntime({ provider: new MockProvider() }),
   routeLogger: { log() {} }
 });
 
 function actionNames(result, allowed) {
-  return (result.workflow?.openclaw_handoff?.channel_actions || [])
+  return (result.workflow?.agent_runtime_handoff?.channel_actions || [])
     .filter((action) => Boolean(action.allowed) === allowed)
     .map((action) => `${action.channel}:${action.action}`);
 }
@@ -127,3 +127,4 @@ async function runCase(input, expected) {
   console.error(error.stack || error.message);
   process.exit(1);
 });
+

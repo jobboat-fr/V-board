@@ -1,8 +1,8 @@
 {
-  "name": "azzco-council-core",
+  "name": "vboard-council-core",
   "version": "0.1.0",
   "private": true,
-  "description": "Clean AZZCO adaptation of the BrandPublisher orchestration brain and LLM council pattern.",
+  "description": "Clean VBOARD adaptation of the BrandPublisher orchestration brain and LLM council pattern.",
   "main": "src/index.js",
   "scripts": {
     "start": "node src/server.js",

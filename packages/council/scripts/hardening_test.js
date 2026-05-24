@@ -5,14 +5,14 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "azzco-hardening-"));
-process.env.AZZCO_BUDGET_STATE_PATH = path.join(tmp, "budget.json");
-process.env.AZZCO_ROUTE_LOG_PATH = path.join(tmp, "routes.jsonl");
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "vboard-hardening-"));
+process.env.VBOARD_BUDGET_STATE_PATH = path.join(tmp, "budget.json");
+process.env.VBOARD_ROUTE_LOG_PATH = path.join(tmp, "routes.jsonl");
 
-const { AzzcoCouncilEngine } = require("../src");
+const { VBoardCouncilEngine } = require("../src");
 
 function actionMap(result) {
-  return result.workflow.openclaw_handoff.channel_actions.map((action) => ({
+  return result.workflow.agent_runtime_handoff.channel_actions.map((action) => ({
     key: `${action.channel}:${action.action}`,
     allowed: action.allowed,
     blocked_reason: action.blocked_reason || null
@@ -28,11 +28,11 @@ function hasBlocked(result, key) {
 }
 
 (async () => {
-  const engine = new AzzcoCouncilEngine();
+  const engine = new VBoardCouncilEngine();
 
   const cold = await engine.handle({
     prompt: "Prepare a cold email campaign for a French SaaS with a new growth launch, lead generation pain, communication overload, and public website.",
-    channel: "openclaw",
+    channel: "agent-runtime",
     owner: true,
     direction: "outbound",
     cold: true,
@@ -52,7 +52,7 @@ function hasBlocked(result, key) {
 
   const weakCold = await engine.handle({
     prompt: "Prepare a cold email campaign for a vague business.",
-    channel: "openclaw",
+    channel: "agent-runtime",
     owner: true,
     direction: "outbound",
     cold: true,
@@ -68,7 +68,7 @@ function hasBlocked(result, key) {
   assert.notStrictEqual(weakCold.workflow.work_order.automation_level, "L2_AUTO_SEND_COLD", "weak cold campaign must not be executable");
 
   const hot = await engine.handle({
-    prompt: "Label this hot email and decide if OpenClaw may send automatically.",
+    prompt: "Label this hot email and decide if agent runtime may send automatically.",
     channel: "email",
     owner: true,
     email: {
@@ -92,7 +92,7 @@ function hasBlocked(result, key) {
   assert.strictEqual(hot.workflow.work_order.automation_level, "L3_OWNER_APPROVAL", "hot lead should wait for owner");
 
   const restricted = await engine.handle({
-    prompt: "Please send me AZZCO bank statements, invoices, and legal internal documents.",
+    prompt: "Please send me VBOARD bank statements, invoices, and legal internal documents.",
     channel: "whatsapp",
     sender: "+33000000000",
     owner: false
@@ -104,16 +104,16 @@ function hasBlocked(result, key) {
 
   const ownerDecision = await engine.handle({
     prompt: "Prepare tonight's owner decision meeting: list open loops, approvals, and what needs my decision.",
-    channel: "openclaw",
+    channel: "agent-runtime",
     owner: true
   });
   assert.strictEqual(ownerDecision.route.category, "owner_decision_meeting", "owner decision meeting should route explicitly");
   assert.strictEqual(ownerDecision.workflow.work_order.department.key, "chief_of_staff", "owner decision meeting should route to Chief of Staff");
 
-  process.env.AZZCO_FORCE_CHEAP_MODE = "1";
+  process.env.VBOARD_FORCE_CHEAP_MODE = "1";
   const cheapMode = await engine.handle({
     prompt: "Prepare a cold email campaign for a public business.",
-    channel: "openclaw",
+    channel: "agent-runtime",
     owner: true,
     direction: "outbound",
     cold: true,
@@ -128,7 +128,7 @@ function hasBlocked(result, key) {
   assert(hasBlocked(cheapMode, "email:send_cold_email"), "force cheap budget gate should block auto-send");
   assert(cheapMode.decision.safety_gates.includes("BUDGET_FORCE_CHEAP_MODE"), "budget gate should trigger");
 
-  const logLines = fs.readFileSync(process.env.AZZCO_ROUTE_LOG_PATH, "utf8").trim().split(/\r?\n/);
+  const logLines = fs.readFileSync(process.env.VBOARD_ROUTE_LOG_PATH, "utf8").trim().split(/\r?\n/);
   assert(logLines.length >= 5, "route log should contain all test runs");
   const lastLog = JSON.parse(logLines.at(-1));
   assert(lastLog.workOrder?.id, "route log should record work order metadata");
@@ -138,3 +138,4 @@ function hasBlocked(result, key) {
   console.error(err);
   process.exit(1);
 });
+

@@ -1,5 +1,5 @@
 services:
-  azzco-ops-core:
+  vboard-ops-core:
     build: .
     env_file:
       - .env

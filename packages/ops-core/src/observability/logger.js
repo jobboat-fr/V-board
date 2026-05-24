@@ -18,7 +18,7 @@ function createWinstonLogger(config) {
       winston.format.json()
     ),
     defaultMeta: {
-      service: "azzco-ops-core",
+      service: "vboard-ops-core",
       server: config.observability?.serverName || "unknown"
     },
     transports: [

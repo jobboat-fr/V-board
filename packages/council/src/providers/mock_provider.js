@@ -19,7 +19,7 @@ class MockProvider {
       if (workflow.lead.website) facts.push(`[EMP] Public website/contact source present: ${workflow.lead.website}.`);
       if (workflow.lead.email) facts.push("[EMP] Public email/contact channel present.");
       if (!workflow.lead.email) missing.push("Verified public business email");
-      estimates.push(`[EST] Best AZZ&CO offer: ${workflow.offer}.`);
+      estimates.push(`[EST] Best Example Company offer: ${workflow.offer}.`);
       checks.push(`AZZING decision: ${signals.azzing?.decision || "unknown"} (${signals.azzing?.D_fast ?? "n/a"}).`);
       if (workflow.mail_policy) {
         facts.push(`[EMP] Mail labeled ${workflow.mail_policy.label} with temperature ${workflow.mail_policy.temperature_score}/100.`);
@@ -64,7 +64,7 @@ class MockProvider {
       } else {
         risks.push("Warm, hot, restricted, or low-confidence mail requires owner approval before sending.");
       }
-      checks.push("Email draft must identify AZZ&CO LABS truthfully and include opt-out.");
+      checks.push("Email draft must identify Example Company truthfully and include opt-out.");
     }
 
     if (role.includes("mail_labeler")) {

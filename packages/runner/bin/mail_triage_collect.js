@@ -6,8 +6,8 @@ const fs = require("fs");
 const path = require("path");
 
 const LIMIT = Number(process.env.MAIL_TRIAGE_LIMIT || 20);
-const WORKSPACE = process.env.AZZCO_WORKSPACE || "/workspace";
-const COUNCIL = process.env.AZZCO_COUNCIL_SCRIPT || `${WORKSPACE}/bin/azzco_council_call.sh`;
+const WORKSPACE = process.env.VBOARD_WORKSPACE || "/workspace";
+const COUNCIL = process.env.VBOARD_COUNCIL_SCRIPT || `${WORKSPACE}/bin/vboard_council_call.sh`;
 const OUT_DIR = `${WORKSPACE}/mail/triage`;
 const SNAPSHOT = path.join(OUT_DIR, "latest_inbox_snapshot.json");
 const COMMAND_TIMEOUT_MS = Number(process.env.MAIL_COMMAND_TIMEOUT_MS || 20000);
@@ -67,7 +67,7 @@ function parseEnvelopes(raw) {
   return items.map(normalizeEnvelope);
 }
 
-const riskPattern = /\b(invoice|receipt|payment|paid|refund|renewal|subscription|tax|vat|legal|contract|security|login|password|account|closure|delete|deletion|suspend|deadline|client|meeting|proposal|quote|devis|partnership|investor|bank|qonto|urssaf|impots?|ovh|vercel|railway|zoho|domain|dns|transaction|reverted|verification|code|kms|ram user)\b/i;
+const riskPattern = /\b(invoice|receipt|payment|paid|refund|renewal|subscription|tax|vat|legal|contract|security|login|password|account|closure|delete|deletion|suspend|deadline|client|meeting|proposal|quote|devis|partnership|investor|bank|bank|urssaf|impots?|back_office|vercel|railway|zoho|domain|dns|transaction|reverted|verification|code|kms|ram user)\b/i;
 const noisePattern = /\b(newsletter|digest|promo|promotion|discount|sale|webinar|event invite|product update|release notes|welcome|bienvenue|unsubscribe|desabonnement|marketing|community|tips|guide|whitepaper|free trial|project ready)\b/i;
 const spamPattern = /\b(casino|crypto|loan|viagra|winner|lottery|forex|get rich|dating)\b/i;
 
@@ -76,9 +76,9 @@ function classifyLocal(env) {
   const hasRisk = riskPattern.test(text);
   if (spamPattern.test(text)) return { localLabel: "spam/no action", ignored: true, reason: "spam pattern" };
   if (noisePattern.test(text) && !hasRisk) return { localLabel: "ignored_marketing", ignored: true, reason: "marketing/newsletter without risk keyword" };
-  if (/qonto|payment|transaction|invoice|receipt|zoho|bank|refund|reverted/i.test(text)) return { localLabel: "finance/invoice", ignored: false };
+  if (/bank|payment|transaction|invoice|receipt|zoho|bank|refund|reverted/i.test(text)) return { localLabel: "finance/invoice", ignored: false };
   if (/security|login|verification|code|password|ram user|kms/i.test(text)) return { localLabel: "security", ignored: false };
-  if (/ovh|closure|contract|legal|domain|dns|railway|vercel/i.test(text)) return { localLabel: "admin/legal", ignored: false };
+  if (/back_office|closure|contract|legal|domain|dns|railway|vercel/i.test(text)) return { localLabel: "admin/legal", ignored: false };
   if (/meeting|proposal|devis|quote|partnership|client/i.test(text)) return { localLabel: "client", ignored: false };
   return { localLabel: "low priority", ignored: false };
 }
@@ -91,7 +91,7 @@ function councilFor(env, local) {
   const payload = {
     prompt: "Classify mail and harden reply draft",
     owner: true,
-    channel: "openclaw",
+    channel: "agent_runtime",
     direction: "inbound",
     email: {
       id: String(env.id),
@@ -114,8 +114,8 @@ function councilFor(env, local) {
       mailLabel: parsed.decision?.mail_label || parsed.workflow?.mail_policy?.label || null,
       automationMode: parsed.decision?.mail_automation_mode || parsed.workflow?.mail_policy?.automation_mode || null,
       ownerApprovalRequired: Boolean(parsed.decision?.owner_approval_required || parsed.route?.safety?.owner_approval_required),
-      allowedActions: parsed.decision?.openclaw_allowed_actions || [],
-      blockedActions: parsed.decision?.openclaw_blocked_actions || [],
+      allowedActions: parsed.decision?.agent_runtime_allowed_actions || [],
+      blockedActions: parsed.decision?.agent_runtime_blocked_actions || [],
       estimatedUsd: parsed.route?.budget?.estimatedUsd || null,
     };
   } catch (error) {

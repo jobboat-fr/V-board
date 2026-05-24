@@ -19,10 +19,10 @@ USER node
 EXPOSE 8788
 
 ENV NODE_ENV=production \
-    AZZCO_API_HOST=0.0.0.0 \
-    AZZCO_API_PORT=8788 \
-    AZZCO_DATA_ROOT=/data \
-    AZZCO_COUNCIL_URL=http://council:8787/route
+    VBOARD_API_HOST=0.0.0.0 \
+    VBOARD_API_PORT=8788 \
+    VBOARD_DATA_ROOT=/data \
+    VBOARD_COUNCIL_URL=http://council:8787/route
 
 VOLUME ["/data"]
 

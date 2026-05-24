@@ -4,7 +4,7 @@ const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
 
-const TOKEN_PREFIX = "azzco";
+const TOKEN_PREFIX = "vboard";
 
 function sha256(value) {
   return crypto.createHash("sha256").update(String(value)).digest("hex");

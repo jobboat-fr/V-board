@@ -78,7 +78,7 @@ async def join_as_advisor(body: Any) -> dict[str, Any]:
     """
     Accept a LiveKit token and report the precise media-worker state.
 
-    The Hermes HTTP server already handles the meeting transcript and council
+    The V-Board HTTP server already handles the meeting transcript and council
     endpoints. This function is for the audio/video participant plane. Set
     MEETING_ROOM_LIVEKIT_MODE=realtime only when a real LiveKit worker runtime
     is installed and supervised.
