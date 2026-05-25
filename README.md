@@ -40,6 +40,34 @@ V-Board does not try to be one magic chatbot. It behaves like an operating team:
 
 The main invariant is simple: **the council prepares, the runner communicates.**
 
+## Prerequisites — Hermes Agent (required on every server)
+
+V-Board does not ship its own message gateway, LLM router, cron execution engine, or channel delivery layer. All of that runs through **[Hermes Agent](https://github.com/NousResearch/hermes-agent)**, which must be installed on every machine or container that runs ops-core, council, or runner.
+
+Every runner cron job, every outbound WhatsApp/Telegram notification, every inbox fetch, and every model call fallback calls the `agent_runtime` CLI binary — which is Hermes. Without it the containers start but nothing executes.
+
+```bash
+# Install on each server / inside each container
+curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash
+source ~/.bashrc
+
+# V-Board calls the binary as "agent_runtime" — create the alias
+ln -sf "$(which hermes)" /usr/local/bin/agent_runtime
+
+# Verify
+agent_runtime status
+```
+
+If you are migrating from OpenClaw:
+
+```bash
+hermes claw migrate
+```
+
+See [`docs/AGENT_RUNTIME.md`](docs/AGENT_RUNTIME.md) for per-container Dockerfile setup, workspace layout, cron job registration, environment variables, and OpenClaw migration.
+
+---
+
 ## Quick Start
 
 ```bash
