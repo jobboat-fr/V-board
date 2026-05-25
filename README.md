@@ -40,31 +40,19 @@ V-Board does not try to be one magic chatbot. It behaves like an operating team:
 
 The main invariant is simple: **the council prepares, the runner communicates.**
 
-## Prerequisites — Hermes Agent (required on every server)
+## Built on Hermes Agent
 
-V-Board does not ship its own message gateway, LLM router, cron execution engine, or channel delivery layer. All of that runs through **[Hermes Agent](https://github.com/NousResearch/hermes-agent)**, which must be installed on every machine or container that runs ops-core, council, or runner.
+V-Board is an ops layer built on **[Hermes Agent](https://github.com/NousResearch/hermes-agent)** — the self-improving AI agent runtime by NousResearch. V-Board does not duplicate what Hermes already ships: multi-provider LLM routing, channel gateways (Telegram, WhatsApp, Discord, Slack), a cron scheduler, a skill system, and persistent session memory. Instead, V-Board's routing pipeline, council, runner jobs, and meeting-room advisor slot directly into Hermes's skill and adapter architecture.
 
-Every runner cron job, every outbound WhatsApp/Telegram notification, every inbox fetch, and every model call fallback calls the `agent_runtime` CLI binary — which is Hermes. Without it the containers start but nothing executes.
+The production deployment is a single fork. One process, one workspace, Hermes infrastructure + V-Board ops capabilities running together. The `agent_runtime` binary referenced by runner cron scripts is the Hermes binary included in the fork.
 
-```bash
-# Install on each server / inside each container
-curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash
-source ~/.bashrc
-
-# V-Board calls the binary as "agent_runtime" — create the alias
-ln -sf "$(which hermes)" /usr/local/bin/agent_runtime
-
-# Verify
-agent_runtime status
-```
-
-If you are migrating from OpenClaw:
+If you are migrating from an existing OpenClaw setup:
 
 ```bash
 hermes claw migrate
 ```
 
-See [`docs/AGENT_RUNTIME.md`](docs/AGENT_RUNTIME.md) for per-container Dockerfile setup, workspace layout, cron job registration, environment variables, and OpenClaw migration.
+See [`docs/AGENT_RUNTIME.md`](docs/AGENT_RUNTIME.md) for the fork architecture, how V-Board maps to Hermes skills and adapters, workspace layout, cron job registration, and the OpenClaw migration path.
 
 ---
 
